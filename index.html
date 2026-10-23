@@ -696,19 +696,36 @@
         });
 
         // Auth Actions
-        $("btnLogin").onclick = async () => {
-            try {
-                await signInWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value);
-            } catch (e) { $("authError").textContent = e.message; $("authError").classList.remove("hidden"); }
-        };
-
-        $("btnRegister").onclick = async () => {
-            try {
-                await createUserWithEmailAndPassword(auth, $("authEmail").value.trim(), $("authPass").value);
-            } catch (e) { $("authError").textContent = e.message; $("authError").classList.remove("hidden"); }
-        };
-
-        $("btnAnon").onclick = () => signInAnonymously(auth);
+        function authMsg(e) {
+            const m = {
+                "auth/invalid-email": "Format email tidak valid. Contoh: nama@gmail.com",
+                "auth/missing-email": "Isi email terlebih dahulu.",
+                "auth/missing-password": "Isi kata sandi terlebih dahulu.",
+                "auth/weak-password": "Kata sandi terlalu pendek. Minimal 6 karakter.",
+                "auth/email-already-in-use": "Email ini sudah terdaftar. Gunakan tombol Masuk.",
+                "auth/invalid-credential": "Email atau kata sandi salah.",
+                "auth/user-not-found": "Akun belum terdaftar. Gunakan Daftar Akun Baru.",
+                "auth/wrong-password": "Email atau kata sandi salah.",
+                "auth/operation-not-allowed": "Metode login ini belum diaktifkan di Firebase (Authentication > Sign-in method).",
+                "auth/unauthorized-domain": "Domain website belum didaftarkan di Firebase (Authentication > Settings > Authorized domains).",
+                "auth/network-request-failed": "Tidak ada koneksi internet.",
+                "auth/too-many-requests": "Terlalu banyak percobaan. Coba lagi beberapa menit lagi."
+            };
+            return m[e.code] || ("Gagal: " + (e.code || e.message));
+        }
+        async function runAuth(fn) {
+            $("authError").classList.add("hidden");
+            const btns = [$("btnLogin"), $("btnRegister"), $("btnAnon")];
+            btns.forEach(b => b.disabled = true);
+            try { await fn(); }
+            catch (e) { $("authError").textContent = authMsg(e); $("authError").classList.remove("hidden"); }
+            finally { btns.forEach(b => b.disabled = false); }
+        }
+        const authCreds = () => [$("authEmail").value.trim(), $("authPass").value];
+        $("btnLogin").onclick = () => runAuth(() => signInWithEmailAndPassword(auth, ...authCreds()));
+        $("btnRegister").onclick = () => runAuth(() => createUserWithEmailAndPassword(auth, ...authCreds()));
+        $("btnAnon").onclick = () => runAuth(() => signInAnonymously(auth));
+        $("authPass").addEventListener("keydown", (e) => { if (e.key === "Enter") $("btnLogin").click(); });
         $("btnLogout").onclick = () => signOut(auth);
         $("btnLogout2").onclick = () => {
             const msg = (currentUser && currentUser.isAnonymous)
