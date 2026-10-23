@@ -341,6 +341,16 @@
 
             <!-- SECTION 6: PENGATURAN -->
             <div id="sec-pengaturan" class="space-y-6 tab-content hidden">
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-3">
+                    <div id="setAvatar" class="w-10 h-10 rounded-full bg-indigo-500/20 text-indigo-500 flex items-center justify-center font-bold shrink-0">U</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Akun</p>
+                        <p id="setUserEmail" class="text-sm font-bold truncate text-slate-900 dark:text-white">-</p>
+                    </div>
+                    <button id="btnLogout2" class="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 text-rose-500 text-xs font-semibold hover:bg-rose-500/20 transition">
+                        <i class="ph-bold ph-sign-out"></i> Keluar
+                    </button>
+                </div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                         <div>
@@ -580,6 +590,8 @@
         let trendChart = null;
         let catChart = null;
 
+        const INITIAL_STATE = clone(state);
+
         function normalizeState(s) {
             s = (s && typeof s === "object") ? s : {};
             if (!Array.isArray(s.tx)) s.tx = [];
@@ -670,8 +682,15 @@
                 $("authModal").classList.add("hidden");
                 $("userEmail").textContent = user.isAnonymous ? "Pengunjung (Anonim)" : (user.email || user.uid);
                 $("userAvatar").textContent = (user.email || "G")[0].toUpperCase();
+                $("setUserEmail").textContent = user.isAnonymous ? "Pengunjung (Anonim)" : (user.email || user.uid);
+                $("setAvatar").textContent = (user.email || "G")[0].toUpperCase();
                 bindCloudListener(user.uid);
             } else {
+                if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
+                state = clone(INITIAL_STATE);
+                $("authPass").value = "";
+                $("authError").classList.add("hidden");
+                renderAll();
                 $("authModal").classList.remove("hidden");
             }
         });
@@ -691,6 +710,12 @@
 
         $("btnAnon").onclick = () => signInAnonymously(auth);
         $("btnLogout").onclick = () => signOut(auth);
+        $("btnLogout2").onclick = () => {
+            const msg = (currentUser && currentUser.isAnonymous)
+                ? "Anda masuk sebagai pengunjung. Jika keluar, data pengunjung ini tidak bisa dibuka lagi. Tetap keluar?"
+                : "Keluar dari akun ini?";
+            if (confirm(msg)) signOut(auth);
+        };
 
         // Smart Natural Language & Voice Parser
         function parseNaturalInput(text) {
