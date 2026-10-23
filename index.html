@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FinSmart - Smart Personal Finance</title>
     <meta name="theme-color" content="#4f46e5">
-    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
     <meta name="mobile-web-app-capable" content="yes">
@@ -130,6 +130,9 @@
                 <button data-nav="analisis" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                     <i class="ph-bold ph-chart-pie-slice text-xl"></i> Statistik & Tips
                 </button>
+                <button data-nav="pengaturan" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+                    <i class="ph-bold ph-gear text-xl"></i> Pengaturan
+                </button>
             </nav>
 
             <div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
@@ -162,6 +165,9 @@
                         <p class="text-xs text-slate-400" id="currentDateStr">Hari ini, 23 Okt 2026</p>
                     </div>
                     <div class="flex items-center gap-2 md:hidden">
+                        <button data-nav="pengaturan" aria-label="Pengaturan" class="nav-btn p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                            <i class="ph-bold ph-gear"></i>
+                        </button>
                         <button id="themeToggleMobile" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                             <i class="ph-bold ph-moon dark:hidden"></i>
                             <i class="ph-bold ph-sun hidden dark:inline"></i>
@@ -190,18 +196,7 @@
             <section class="space-y-2">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aksi Cepat (1-Klik)</span>
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                    <button class="quick-preset flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:border-indigo-500 transition shrink-0" data-note="Kopi Pagi" data-amount="20000" data-cat="Makanan" data-type="out">
-                        ☕ Kopi Rp 20rb
-                    </button>
-                    <button class="quick-preset flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:border-indigo-500 transition shrink-0" data-note="Bensin Motor" data-amount="30000" data-cat="Transport" data-type="out">
-                        ⛽ Bensin Rp 30rb
-                    </button>
-                    <button class="quick-preset flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:border-indigo-500 transition shrink-0" data-note="Makan Siang" data-amount="25000" data-cat="Makanan" data-type="out">
-                        🍱 Makan Rp 25rb
-                    </button>
-                    <button class="quick-preset flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:border-indigo-500 transition shrink-0" data-note="Belanja Harian" data-amount="50000" data-cat="Belanja" data-type="out">
-                        🛒 Belanja Rp 50rb
-                    </button>
+                    <span id="quickList" class="contents"></span>
                     <button id="btnOpenManualModal" class="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-2xl text-xs font-semibold hover:bg-indigo-700 transition shrink-0 ml-auto shadow-md">
                         <i class="ph-bold ph-plus"></i> Form Lengkap
                     </button>
@@ -322,7 +317,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <h3 class="font-bold text-slate-900 dark:text-white">Tagihan & Langganan Rutin</h3>
-                            <p class="text-xs text-slate-400">Otomatiskan pengeluaran bulanan seperti WiFi, Kost, atau Netflix.</p>
+                            <p class="text-xs text-slate-400">Simpan tagihan rutin seperti WiFi, Kost, atau Netflix, lalu catat dengan satu ketukan.</p>
                         </div>
                         <button id="btnAddSub" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">
                             + Tambah Rutin
@@ -341,6 +336,57 @@
                         <p class="text-xs text-slate-400">Atur batas maks pengeluaran per bulan. Peringatan akan aktif saat pengeluaran > 80%.</p>
                     </div>
                     <div id="budgetCategoryList" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- SECTION 6: PENGATURAN -->
+            <div id="sec-pengaturan" class="space-y-6 tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Kategori</h3>
+                            <p class="text-xs text-slate-400">Ubah nama langsung di kolom. Transaksi lama ikut berubah.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+                            <button id="setCatTabOut" class="py-2 rounded-lg text-xs font-bold">Pengeluaran</button>
+                            <button id="setCatTabIn" class="py-2 rounded-lg text-xs font-bold">Pemasukan</button>
+                        </div>
+                        <div id="setCatList" class="space-y-2"></div>
+                        <div class="flex items-center gap-2 pt-1">
+                            <input id="newCatName" placeholder="Kategori baru" class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <button id="btnAddCat" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Tambah</button>
+                        </div>
+                    </div>
+
+                    <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Aksi Cepat (1-Klik)</h3>
+                            <p class="text-xs text-slate-400">Tombol pintas di halaman utama. Ubah nama, jumlah, atau kategorinya.</p>
+                        </div>
+                        <div id="setQuickList" class="space-y-3"></div>
+                        <div class="p-3 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 space-y-2">
+                            <p class="text-xs font-semibold text-slate-400">Tambah aksi cepat</p>
+                            <div class="flex gap-2">
+                                <input id="newQEmoji" maxlength="4" placeholder="⚡" aria-label="Ikon" class="w-12 text-center px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <input id="newQLabel" placeholder="Nama, mis. Parkir" class="flex-1 min-w-0 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input id="newQAmount" inputmode="numeric" placeholder="Jumlah (Rp)" class="min-w-0 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <select id="newQCat" class="min-w-0 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                            </div>
+                            <button id="btnAddQuick" class="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Tambah Aksi Cepat</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Tagihan & Langganan Rutin</h3>
+                            <p class="text-xs text-slate-400">Tambah, ubah, atau hapus tagihan rutin Anda.</p>
+                        </div>
+                        <button id="btnGoRutin" class="shrink-0 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Kelola</button>
+                    </div>
                 </div>
             </div>
 
@@ -430,6 +476,45 @@
         </div>
     </div>
 
+    <!-- RUTIN MODAL -->
+    <div id="subModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white" id="modalSubTitle">Tambah Tagihan Rutin</h3>
+                <button id="btnCloseSubModal" aria-label="Tutup" class="p-1 text-slate-400 hover:text-slate-600"><i class="ph-bold ph-x text-xl"></i></button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nama</label>
+                    <input id="subName" placeholder="mis. WiFi, Kost, Netflix" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Jumlah (Rp)</label>
+                    <input id="subAmount" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Kategori</label>
+                        <select id="subCat" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Siklus</label>
+                        <select id="subCycle" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="mingguan">mingguan</option>
+                            <option value="bulanan">bulanan</option>
+                            <option value="tahunan">tahunan</option>
+                        </select>
+                    </div>
+                </div>
+                <p id="subError" class="hidden text-xs text-rose-500"></p>
+                <div class="pt-2 flex items-center gap-2">
+                    <button id="btnSaveSub" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-500/20">Simpan</button>
+                    <button id="btnDeleteSub" class="hidden px-4 py-3 bg-rose-500/10 text-rose-500 font-semibold rounded-xl hover:bg-rose-500/20 transition">Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FIREBASE & APPLICATION LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
@@ -468,6 +553,14 @@
             in: ["Gaji", "Bonus", "Usaha", "Investasi", "Lainnya"]
         };
 
+        const clone = (o) => JSON.parse(JSON.stringify(o));
+        const DEFAULT_QUICK = [
+            { emoji: "☕", label: "Kopi Pagi", amount: 20000, cat: "Makanan", type: "out" },
+            { emoji: "⛽", label: "Bensin Motor", amount: 30000, cat: "Transport", type: "out" },
+            { emoji: "🍱", label: "Makan Siang", amount: 25000, cat: "Makanan", type: "out" },
+            { emoji: "🛒", label: "Belanja Harian", amount: 50000, cat: "Belanja", type: "out" }
+        ];
+
         let state = {
             tx: [],
             budgets: { Makanan: 1500000, Belanja: 1000000 },
@@ -475,7 +568,8 @@
                 { id: 1, name: "WiFi Indihome", amount: 350000, cat: "Tagihan", cycle: "bulanan" },
                 { id: 2, name: "Netflix Premium", amount: 186000, cat: "Hiburan", cycle: "bulanan" }
             ],
-            categories: DEFAULT_CATEGORIES,
+            categories: clone(DEFAULT_CATEGORIES),
+            quickActions: clone(DEFAULT_QUICK),
             updatedAt: 0
         };
 
@@ -486,11 +580,38 @@
         let trendChart = null;
         let catChart = null;
 
+        function normalizeState(s) {
+            s = (s && typeof s === "object") ? s : {};
+            if (!Array.isArray(s.tx)) s.tx = [];
+            if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
+            if (!Array.isArray(s.subscriptions)) s.subscriptions = [];
+            if (!s.categories || !Array.isArray(s.categories.out) || !Array.isArray(s.categories.in) || !s.categories.out.length || !s.categories.in.length) {
+                s.categories = clone(DEFAULT_CATEGORIES);
+            }
+            if (!Array.isArray(s.quickActions)) s.quickActions = clone(DEFAULT_QUICK);
+            return s;
+        }
+
+        function safeCat(type, cat) {
+            const list = state.categories[type] || [];
+            if (list.includes(cat)) return cat;
+            return list.includes("Lainnya") ? "Lainnya" : (list[0] || cat);
+        }
+
         // UI Element References
         const $ = (id) => document.getElementById(id);
 
         // Utilities
         const formatRp = (num) => "Rp " + Math.round(num || 0).toLocaleString("id-ID");
+        const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        const shortRp = (n) => n >= 1000000 ? (Math.round(n / 100000) / 10).toString().replace(".", ",") + "jt" : (n >= 1000 ? Math.round(n / 1000) + "rb" : String(n));
+        function toast(msg) {
+            const t = document.createElement("div");
+            t.textContent = msg;
+            t.className = "fixed left-1/2 -translate-x-1/2 bottom-24 md:bottom-8 z-[60] px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold shadow-lg";
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 1800);
+        }
         const cleanNumber = (str) => parseInt(String(str).replace(/\D/g, "")) || 0;
 
         // Dynamic Currency Input Formatter
@@ -529,7 +650,7 @@
                     try {
                         const raw = snap.data();
                         if (raw && raw.data) {
-                            state = JSON.parse(raw.data);
+                            state = normalizeState(JSON.parse(raw.data));
                             renderAll();
                         }
                     } catch (e) {
@@ -604,7 +725,7 @@
                 id: Date.now(),
                 amount: amount || 10000,
                 type: type,
-                cat: cat,
+                cat: safeCat(type, cat),
                 date: todayStr,
                 note: text.trim()
             };
@@ -641,22 +762,6 @@
             $("btnVoice").style.display = 'none';
         }
 
-        // Quick Presets
-        document.querySelectorAll(".quick-preset").forEach(btn => {
-            btn.onclick = () => {
-                state.tx.push({
-                    id: Date.now(),
-                    amount: parseInt(btn.dataset.amount),
-                    type: btn.dataset.type,
-                    cat: btn.dataset.cat,
-                    date: todayStr,
-                    note: btn.dataset.note
-                });
-                syncToCloud();
-                renderAll();
-            };
-        });
-
         // Navigation Management
         document.querySelectorAll(".nav-btn").forEach(btn => {
             btn.onclick = () => {
@@ -665,7 +770,7 @@
                 document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
                 document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active", "text-indigo-600", "dark:text-indigo-400"));
                 $(`sec-${target}`).classList.remove("hidden");
-                $("pageTitle").textContent = target.charAt(0).toUpperCase() + target.slice(1);
+                $("pageTitle").textContent = ({ dashboard: "Dashboard", transaksi: "Transaksi", langganan: "Rutin & Tagihan", anggaran: "Anggaran", analisis: "Statistik & Tips", pengaturan: "Pengaturan" })[target] || target;
                 btn.classList.add("active", "text-indigo-600", "dark:text-indigo-400");
             };
         });
@@ -673,7 +778,7 @@
         // Modal Form Management
         function populateCategoryOptions() {
             const list = state.categories[currentFormType] || DEFAULT_CATEGORIES[currentFormType];
-            $("formCategory").innerHTML = list.map(c => `<option value="${c}">${c}</option>`).join("");
+            $("formCategory").innerHTML = list.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
         }
 
         $("btnOpenManualModal").onclick = $("btnOpenManualModalMobile").onclick = () => {
@@ -764,6 +869,9 @@
             renderSubscriptions();
             renderInsights();
             renderHeatmap();
+            renderQuick();
+            renderSettings();
+            renderFilterCats();
         }
 
         function renderRecentTx() {
@@ -887,7 +995,7 @@
             const currentMonth = new Date().toISOString().slice(0, 7);
             const expTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth && x.type === 'out');
 
-            $("budgetCategoryList").innerHTML = DEFAULT_CATEGORIES.out.map(cat => {
+            $("budgetCategoryList").innerHTML = state.categories.out.map((cat, i) => {
                 const spent = expTxs.filter(x => x.cat === cat).reduce((a, b) => a + b.amount, 0);
                 const limit = state.budgets[cat] || 0;
                 const percent = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
@@ -895,28 +1003,36 @@
 
                 return `
                     <div class="space-y-1">
-                        <div class="flex justify-between text-xs">
-                            <span class="font-bold">${cat}</span>
-                            <span>${formatRp(spent)} / ${limit ? formatRp(limit) : 'Tanpa Batas'}</span>
+                        <div class="flex justify-between items-center gap-2 text-xs">
+                            <span class="font-bold truncate">${esc(cat)}</span>
+                            <span class="shrink-0">${formatRp(spent)} / ${limit ? formatRp(limit) : 'Tanpa Batas'}</span>
                         </div>
                         <div class="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
                             <div class="h-full ${isOver ? 'bg-rose-500' : 'bg-indigo-600'}" style="width: ${percent}%"></div>
                         </div>
+                        <input data-bud="${i}" inputmode="numeric" value="${limit ? limit.toLocaleString('id-ID') : ''}" placeholder="Atur batas bulanan (Rp)" aria-label="Batas ${esc(cat)}" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 `;
             }).join("");
         }
 
         function renderSubscriptions() {
-            $("subList").innerHTML = state.subscriptions.map(s => `
-                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-2">
-                    <div class="flex justify-between items-center">
-                        <h4 class="font-bold text-xs">${s.name}</h4>
-                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 font-semibold">${s.cycle}</span>
+            $("subList").innerHTML = state.subscriptions.length ? state.subscriptions.map((s, i) => `
+                <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
+                    <div class="flex justify-between items-center gap-2">
+                        <h4 class="font-bold text-xs truncate">${esc(s.name)}</h4>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 font-semibold shrink-0">${esc(s.cycle)}</span>
                     </div>
-                    <p class="text-sm font-extrabold text-slate-900 dark:text-white">${formatRp(s.amount)}</p>
+                    <div>
+                        <p class="text-sm font-extrabold text-slate-900 dark:text-white">${formatRp(s.amount)}</p>
+                        <p class="text-[10px] text-slate-400">${esc(s.cat)}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button data-act="pay" data-i="${i}" class="flex-1 py-1.5 bg-indigo-600 text-white rounded-lg text-[11px] font-semibold hover:bg-indigo-700 transition">Catat sekarang</button>
+                        <button data-act="edit" data-i="${i}" class="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Ubah</button>
+                    </div>
                 </div>
-            `).join("");
+            `).join("") : `<p class="text-xs text-slate-400 py-6 text-center md:col-span-2 lg:col-span-3">Belum ada tagihan rutin. Ketuk "+ Tambah Rutin".</p>`;
         }
 
         function renderInsights() {
@@ -935,6 +1051,239 @@
             }
             $("spendingHeatmap").innerHTML = h;
         }
+
+        // ===== Aksi Cepat, Pengaturan, Rutin =====
+        const INPUT_CLS = "px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+        function renderQuick() {
+            $("quickList").innerHTML = state.quickActions.map((q, i) => `
+                <button data-q="${i}" class="quick-preset flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold hover:border-indigo-500 transition shrink-0">
+                    ${esc(q.emoji || "⚡")} ${esc(q.label)} ${q.type === "in" ? "+" : ""}Rp ${shortRp(q.amount)}
+                </button>
+            `).join("") || `<span class="text-xs text-slate-400">Belum ada aksi cepat. Tambah lewat Pengaturan.</span>`;
+        }
+
+        $("quickList").onclick = (e) => {
+            const b = e.target.closest("[data-q]");
+            if (!b) return;
+            const q = state.quickActions[+b.dataset.q];
+            if (!q) return;
+            state.tx.push({ id: Date.now(), amount: q.amount, type: q.type, cat: safeCat(q.type, q.cat), date: todayStr, note: q.label });
+            syncToCloud();
+            renderAll();
+            toast("Tercatat: " + q.label);
+        };
+
+        let settingsCatType = "out";
+        const catOptions = (sel) => ["out", "in"].map(t =>
+            `<optgroup label="${t === "out" ? "Pengeluaran" : "Pemasukan"}">` +
+            state.categories[t].map(c => { const v = t + "|" + c; return `<option value="${esc(v)}" ${v === sel ? "selected" : ""}>${esc(c)}</option>`; }).join("") +
+            `</optgroup>`).join("");
+
+        function renderSettings() {
+            const t = settingsCatType;
+            const on = "py-2 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-indigo-600 shadow-sm";
+            const off = "py-2 rounded-lg text-xs font-bold text-slate-500";
+            $("setCatTabOut").className = t === "out" ? on : off;
+            $("setCatTabIn").className = t === "in" ? on : off;
+
+            $("setCatList").innerHTML = state.categories[t].map((c, i) => `
+                <div class="flex items-center gap-2">
+                    <input data-cat-i="${i}" value="${esc(c)}" aria-label="Nama kategori" class="flex-1 min-w-0 ${INPUT_CLS}">
+                    <button data-cat-del="${i}" aria-label="Hapus kategori" class="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition"><i class="ph-bold ph-trash"></i></button>
+                </div>
+            `).join("");
+
+            $("setQuickList").innerHTML = state.quickActions.map((q, i) => `
+                <div class="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div class="flex items-center gap-2">
+                        <input data-q-f="emoji" data-q-i="${i}" value="${esc(q.emoji)}" maxlength="4" aria-label="Ikon" class="w-12 text-center ${INPUT_CLS}">
+                        <input data-q-f="label" data-q-i="${i}" value="${esc(q.label)}" aria-label="Nama" class="flex-1 min-w-0 ${INPUT_CLS}">
+                        <button data-q-del="${i}" aria-label="Hapus aksi cepat" class="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 transition"><i class="ph-bold ph-trash"></i></button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input data-q-f="amount" data-q-i="${i}" inputmode="numeric" value="${q.amount.toLocaleString("id-ID")}" aria-label="Jumlah" class="min-w-0 ${INPUT_CLS}">
+                        <select data-q-f="cat" data-q-i="${i}" aria-label="Kategori" class="min-w-0 ${INPUT_CLS}">${catOptions(q.type + "|" + q.cat)}</select>
+                    </div>
+                </div>
+            `).join("") || `<p class="text-xs text-slate-400 text-center py-2">Belum ada aksi cepat.</p>`;
+
+            const cur = $("newQCat").value;
+            $("newQCat").innerHTML = catOptions(cur);
+            if (cur) $("newQCat").value = cur;
+        }
+
+        $("setCatTabOut").onclick = () => { settingsCatType = "out"; renderSettings(); };
+        $("setCatTabIn").onclick = () => { settingsCatType = "in"; renderSettings(); };
+        $("btnGoRutin").onclick = () => document.querySelector('.nav-btn[data-nav="langganan"]').click();
+
+        $("setCatList").onchange = (e) => {
+            const el = e.target.closest("[data-cat-i]");
+            if (!el) return;
+            const t = settingsCatType, i = +el.dataset.catI, list = state.categories[t], old = list[i];
+            const nv = el.value.trim();
+            if (!nv || nv === old) { el.value = old; return; }
+            if (list.includes(nv)) { toast("Nama kategori sudah ada"); el.value = old; return; }
+            list[i] = nv;
+            state.tx.forEach(x => { if (x.type === t && x.cat === old) x.cat = nv; });
+            state.quickActions.forEach(q => { if (q.type === t && q.cat === old) q.cat = nv; });
+            if (t === "out") {
+                if (state.budgets[old] !== undefined) { state.budgets[nv] = state.budgets[old]; delete state.budgets[old]; }
+                state.subscriptions.forEach(s => { if (s.cat === old) s.cat = nv; });
+            }
+            syncToCloud();
+            renderAll();
+            toast("Kategori diubah");
+        };
+
+        $("setCatList").onclick = (e) => {
+            const b = e.target.closest("[data-cat-del]");
+            if (!b) return;
+            const t = settingsCatType, list = state.categories[t], i = +b.dataset.catDel, name = list[i];
+            if (list.length < 2) { toast("Sisakan minimal satu kategori"); return; }
+            const n = state.tx.filter(x => x.type === t && x.cat === name).length;
+            if (!confirm('Hapus kategori "' + name + '"?' + (n ? " " + n + " transaksi akan dipindah ke kategori lain." : ""))) return;
+            list.splice(i, 1);
+            const fb = list.includes("Lainnya") ? "Lainnya" : list[0];
+            state.tx.forEach(x => { if (x.type === t && x.cat === name) x.cat = fb; });
+            state.quickActions.forEach(q => { if (q.type === t && q.cat === name) q.cat = fb; });
+            if (t === "out") {
+                delete state.budgets[name];
+                state.subscriptions.forEach(s => { if (s.cat === name) s.cat = fb; });
+            }
+            syncToCloud();
+            renderAll();
+            toast("Kategori dihapus");
+        };
+
+        $("btnAddCat").onclick = () => {
+            const nv = $("newCatName").value.trim();
+            if (!nv) return;
+            if (state.categories[settingsCatType].includes(nv)) { toast("Nama kategori sudah ada"); return; }
+            state.categories[settingsCatType].push(nv);
+            $("newCatName").value = "";
+            syncToCloud();
+            renderAll();
+            toast("Kategori ditambahkan");
+        };
+
+        $("setQuickList").onchange = (e) => {
+            const el = e.target.closest("[data-q-f]");
+            if (!el) return;
+            const q = state.quickActions[+el.dataset.qI];
+            if (!q) return;
+            const f = el.dataset.qF;
+            if (f === "emoji") q.emoji = el.value.trim();
+            else if (f === "label") { const v = el.value.trim(); if (!v) { el.value = q.label; return; } q.label = v; }
+            else if (f === "amount") { const v = cleanNumber(el.value); if (!v) { el.value = q.amount.toLocaleString("id-ID"); return; } q.amount = v; }
+            else if (f === "cat") { const v = el.value, k = v.indexOf("|"); q.type = v.slice(0, k); q.cat = v.slice(k + 1); }
+            syncToCloud();
+            renderAll();
+        };
+
+        $("setQuickList").onclick = (e) => {
+            const b = e.target.closest("[data-q-del]");
+            if (!b) return;
+            const i = +b.dataset.qDel, q = state.quickActions[i];
+            if (!q || !confirm('Hapus aksi cepat "' + q.label + '"?')) return;
+            state.quickActions.splice(i, 1);
+            syncToCloud();
+            renderAll();
+        };
+
+        $("btnAddQuick").onclick = () => {
+            const label = $("newQLabel").value.trim(), amount = cleanNumber($("newQAmount").value);
+            if (!label || !amount) { toast("Isi nama dan jumlah dulu"); return; }
+            const v = $("newQCat").value, k = v.indexOf("|");
+            state.quickActions.push({ emoji: $("newQEmoji").value.trim() || "⚡", label: label, amount: amount, type: v.slice(0, k), cat: v.slice(k + 1) });
+            $("newQEmoji").value = ""; $("newQLabel").value = ""; $("newQAmount").value = "";
+            syncToCloud();
+            renderAll();
+            toast("Aksi cepat ditambahkan");
+        };
+
+        $("budgetCategoryList").onchange = (e) => {
+            const el = e.target.closest("[data-bud]");
+            if (!el) return;
+            const cat = state.categories.out[+el.dataset.bud];
+            if (cat === undefined) return;
+            const v = cleanNumber(el.value);
+            if (v > 0) state.budgets[cat] = v; else delete state.budgets[cat];
+            syncToCloud();
+            renderAll();
+        };
+
+        ["newQAmount", "subAmount"].forEach(id => $(id).addEventListener("input", (e) => {
+            const raw = cleanNumber(e.target.value);
+            e.target.value = raw ? raw.toLocaleString("id-ID") : "";
+        }));
+
+        // Rutin & Tagihan
+        let editingSubIdx = null;
+        function openSubModal(idx) {
+            editingSubIdx = idx;
+            const s = idx === null ? null : state.subscriptions[idx];
+            $("modalSubTitle").textContent = s ? "Ubah Tagihan Rutin" : "Tambah Tagihan Rutin";
+            $("subName").value = s ? s.name : "";
+            $("subAmount").value = s ? s.amount.toLocaleString("id-ID") : "";
+            $("subCat").innerHTML = state.categories.out.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+            if (s && state.categories.out.includes(s.cat)) $("subCat").value = s.cat;
+            $("subCycle").value = s ? s.cycle : "bulanan";
+            $("btnDeleteSub").classList.toggle("hidden", !s);
+            $("subError").classList.add("hidden");
+            $("subModal").classList.remove("hidden");
+        }
+
+        $("btnAddSub").onclick = () => openSubModal(null);
+        $("btnCloseSubModal").onclick = () => $("subModal").classList.add("hidden");
+
+        $("btnSaveSub").onclick = () => {
+            const name = $("subName").value.trim(), amount = cleanNumber($("subAmount").value);
+            if (!name || !amount) {
+                $("subError").textContent = "Isi nama dan jumlah terlebih dahulu.";
+                $("subError").classList.remove("hidden");
+                return;
+            }
+            const old = editingSubIdx === null ? null : state.subscriptions[editingSubIdx];
+            const item = { id: old ? old.id : Date.now(), name: name, amount: amount, cat: $("subCat").value, cycle: $("subCycle").value };
+            if (old) state.subscriptions[editingSubIdx] = item; else state.subscriptions.push(item);
+            $("subModal").classList.add("hidden");
+            syncToCloud();
+            renderAll();
+            toast("Tagihan rutin disimpan");
+        };
+
+        $("btnDeleteSub").onclick = () => {
+            if (editingSubIdx === null) return;
+            if (!confirm("Hapus tagihan rutin ini?")) return;
+            state.subscriptions.splice(editingSubIdx, 1);
+            $("subModal").classList.add("hidden");
+            syncToCloud();
+            renderAll();
+        };
+
+        $("subList").onclick = (e) => {
+            const b = e.target.closest("[data-act]");
+            if (!b) return;
+            const i = +b.dataset.i, s = state.subscriptions[i];
+            if (!s) return;
+            if (b.dataset.act === "edit") { openSubModal(i); return; }
+            state.tx.push({ id: Date.now(), amount: s.amount, type: "out", cat: safeCat("out", s.cat), date: todayStr, note: s.name });
+            syncToCloud();
+            renderAll();
+            toast("Tercatat: " + s.name);
+        };
+
+        // Filter transaksi
+        function renderFilterCats() {
+            const cur = $("txFilterCat").value;
+            const all = [...new Set([...state.categories.out, ...state.categories.in])];
+            $("txFilterCat").innerHTML = `<option value="">Semua Kategori</option>` + all.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join("");
+            if (all.includes(cur)) $("txFilterCat").value = cur;
+        }
+        $("txSearch").addEventListener("input", renderFullTx);
+        $("txFilterType").addEventListener("change", renderFullTx);
+        $("txFilterCat").addEventListener("change", renderFullTx);
 
         // Export Actions
         $("btnExportCSV").onclick = () => {
