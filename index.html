@@ -4,6 +4,13 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>FinSmart - Smart Personal Finance</title>
+    <meta name="theme-color" content="#4f46e5">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="FinSmart">
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -955,6 +962,9 @@
         });
 
         // Initialize App View
+        if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+            window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+        }
     </script>
 </body>
 </html>
