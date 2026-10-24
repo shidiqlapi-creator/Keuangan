@@ -392,6 +392,16 @@
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div class="flex items-center justify-between gap-3">
                         <div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">Mode Widget</h3>
+                            <p class="text-xs text-slate-400">Tampilan ringkas: saldo, aksi cepat, dan transaksi terakhir. Tekan lama ikon FinSmart di layar utama, lalu tarik pintasan "Mode Widget" ke layar utama.</p>
+                        </div>
+                        <button id="btnOpenWidget" class="shrink-0 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Buka</button>
+                    </div>
+                </div>
+
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between gap-3">
+                        <div>
                             <h3 class="font-bold text-slate-900 dark:text-white">Tagihan & Langganan Rutin</h3>
                             <p class="text-xs text-slate-400">Tambah, ubah, atau hapus tagihan rutin Anda.</p>
                         </div>
@@ -482,6 +492,36 @@
                     <button id="btnSaveTx" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-500/20">Simpan</button>
                     <button id="btnDeleteTx" class="hidden px-4 py-3 bg-rose-500/10 text-rose-500 font-semibold rounded-xl hover:bg-rose-500/20 transition">Hapus</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODE WIDGET -->
+    <div id="widgetView" class="hidden fixed inset-0 z-40 overflow-y-auto bg-slate-50 dark:bg-slate-950 p-4 text-slate-900 dark:text-white" style="padding-top: max(1rem, env(safe-area-inset-top)); padding-bottom: max(1rem, env(safe-area-inset-bottom));">
+        <div class="max-w-md mx-auto space-y-4">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">FinSmart</p>
+                    <p id="wDate" class="text-xs text-slate-500 dark:text-slate-400 truncate"></p>
+                </div>
+                <button id="wOpenApp" class="shrink-0 px-3 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-md">Buka Aplikasi</button>
+            </div>
+            <div class="p-5 rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-lg">
+                <p class="text-xs opacity-80">Total Saldo</p>
+                <p id="wBalance" class="text-3xl font-extrabold mt-1">Rp 0</p>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+                <div class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"><p class="text-[10px] text-slate-400">Keluar hari ini</p><p id="wToday" class="text-xs font-bold text-rose-500 mt-1">Rp 0</p></div>
+                <div class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"><p class="text-[10px] text-slate-400">Masuk bulan ini</p><p id="wMonthIn" class="text-xs font-bold text-emerald-500 mt-1">Rp 0</p></div>
+                <div class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"><p class="text-[10px] text-slate-400">Keluar bulan ini</p><p id="wMonthOut" class="text-xs font-bold text-rose-500 mt-1">Rp 0</p></div>
+            </div>
+            <div>
+                <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Aksi Cepat</p>
+                <div id="wQuick" class="grid grid-cols-2 gap-2"></div>
+            </div>
+            <div>
+                <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Transaksi Terakhir</p>
+                <div id="wRecent" class="space-y-2"></div>
             </div>
         </div>
     </div>
@@ -633,7 +673,11 @@
         });
 
         // Date String Format
-        const todayStr = new Date().toISOString().split("T")[0];
+        function localToday() {
+            const d = new Date();
+            return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        }
+        const todayStr = localToday();
         $("formDate").value = todayStr;
         $("currentDateStr").textContent = new Date().toLocaleDateString("id-ID", { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
 
@@ -735,53 +779,149 @@
         };
 
         // Smart Natural Language & Voice Parser
-        function parseNaturalInput(text) {
-            if (!text.trim()) return null;
-            let str = text.toLowerCase();
-            let amount = 0;
-            let type = "out";
-            let cat = "Lainnya";
-
-            // Extract Amount (e.g., 35ribu, 35rb, 35k, 35000, 5juta, 5jt)
-            const kMatch = str.match(/(\d+)\s*(rb|ribu|k)/);
-            const jtMatch = str.match(/(\d+)\s*(jt|juta)/);
-            const numMatch = str.match(/(\d[\d\.]*)/);
-
-            if (jtMatch) amount = parseInt(jtMatch[1]) * 1000000;
-            else if (kMatch) amount = parseInt(kMatch[1]) * 1000;
-            else if (numMatch) amount = parseInt(numMatch[1].replace(/\./g, ""));
-
-            // Income Detection Keywords
-            if (str.includes("gaji") || str.includes("bonus") || str.includes("dapat") || str.includes("masuk") || str.includes("transfer")) {
-                type = "in";
-                cat = "Gaji";
+        // ===== PARSER START =====
+        const KEYWORDS = {
+            out: {
+                "Makanan": ["makan", "minum", "kopi", "teh", "resto", "restoran", "sarapan", "nasi", "ayam", "bakso", "mie", "sate", "soto", "jajan", "snack", "cemilan", "boba", "gofood", "grabfood", "shopeefood", "warung", "kantin", "lunch", "dinner", "roti", "susu", "galon", "gorengan"],
+                "Transport": ["bensin", "pertamax", "pertalite", "solar", "gojek", "gocar", "goride", "grab", "maxim", "ojek", "ojol", "parkir", "tol", "etoll", "kereta", "krl", "mrt", "busway", "transjakarta", "bus", "angkot", "taksi", "servis", "service", "oli"],
+                "Belanja": ["baju", "celana", "sepatu", "tas", "belanja", "tokped", "tokopedia", "shopee", "lazada", "blibli", "tiktokshop", "alfamart", "indomaret", "supermarket", "pasar", "sabun", "sampo", "skincare", "rokok"],
+                "Tagihan": ["wifi", "listrik", "token", "pln", "pulsa", "kuota", "internet", "pdam", "air", "cicilan", "kos", "kost", "sewa", "asuransi", "bpjs", "netflix", "spotify", "langganan", "pajak", "indihome", "paket data"],
+                "Kesehatan": ["obat", "dokter", "apotek", "klinik", "rumah sakit", "vitamin", "periksa", "lab", "gigi"],
+                "Hiburan": ["nonton", "bioskop", "film", "game", "steam", "konser", "liburan", "wisata", "karaoke", "hiburan"]
+            },
+            in: {
+                "Gaji": ["gaji", "salary", "thr"],
+                "Bonus": ["bonus", "insentif", "komisi", "cashback"],
+                "Usaha": ["jual", "jualan", "omzet", "untung", "dagang"],
+                "Investasi": ["dividen", "bunga", "saham", "kupon", "profit"]
             }
+        };
+        const INCOME_WORDS = ["gaji", "salary", "thr", "bonus", "dapat", "terima", "diterima", "masuk", "transfer", "pemasukan", "pendapatan", "dividen", "komisi", "insentif", "cashback", "refund", "untung", "omzet", "jualan"];
+        const STOPWORDS = new Set(["beli", "bayar", "buat", "untuk", "dan", "yang", "dengan", "tadi", "hari", "ini", "rupiah", "sama", "dari", "pada", "pakai", "bulan", "minggu", "ribu", "juta", "puluh", "ratus", "belas", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "seratus", "seribu", "sejuta", "setengah"]);
 
-            // Category Keyword Mapping
-            if (str.includes("makan") || str.includes("kopi") || str.includes("resto") || str.includes("sarapan")) cat = "Makanan";
-            else if (str.includes("bensin") || str.includes("gojek") || str.includes("grab") || str.includes("parkir")) cat = "Transport";
-            else if (str.includes("baju") || str.includes("belanja") || str.includes("tokped") || str.includes("shopee")) cat = "Belanja";
-            else if (str.includes("wifi") || str.includes("listrik") || str.includes("pulsa") || str.includes("air")) cat = "Tagihan";
+        const normText = (t) => " " + String(t).toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim() + " ";
+        const tokensOf = (norm) => norm.trim().split(" ").filter(w => w.length >= 3 && !/^\d/.test(w) && !STOPWORDS.has(w));
+
+        function wordsToNumber(str) {
+            const D = { nol: 0, satu: 1, dua: 2, tiga: 3, empat: 4, lima: 5, enam: 6, tujuh: 7, delapan: 8, sembilan: 9 };
+            const SP = { sepuluh: 10, sebelas: 11, seratus: 100, seribu: 1000, sejuta: 1000000, setengah: 0.5 };
+            const MULT = new Set(["belas", "puluh", "ratus", "ribu", "juta"]);
+            const toks = str.replace(/[^a-z\s]/g, " ").split(/\s+/).filter(Boolean);
+            const isNW = (w) => (w in D) || (w in SP) || MULT.has(w);
+            let i = 0;
+            while (i < toks.length) {
+                if (!isNW(toks[i])) { i++; continue; }
+                let total = 0, group = 0, cur = 0;
+                while (i < toks.length && isNW(toks[i])) {
+                    const w = toks[i++];
+                    if (w in D) cur = D[w];
+                    else if (w === "setengah") cur = 0.5;
+                    else if (w === "sepuluh") group += 10;
+                    else if (w === "sebelas") group += 11;
+                    else if (w === "seratus") group += 100;
+                    else if (w === "seribu") total += 1000;
+                    else if (w === "sejuta") total += 1000000;
+                    else if (w === "belas") { group += cur + 10; cur = 0; }
+                    else if (w === "puluh") { group += (cur || 1) * 10; cur = 0; }
+                    else if (w === "ratus") { group += (cur || 1) * 100; cur = 0; }
+                    else if (w === "ribu") { total += ((group + cur) || 1) * 1000; group = 0; cur = 0; }
+                    else if (w === "juta") { total += ((group + cur) || 1) * 1000000; group = 0; cur = 0; }
+                }
+                const v = Math.round(total + group + cur);
+                if (v >= 100) return v;
+            }
+            return 0;
+        }
+
+        function learnCategory(norm, type) {
+            const mine = new Set(tokensOf(norm));
+            if (!mine.size) return null;
+            const score = {};
+            state.tx.forEach(x => {
+                if (x.type !== type || !x.note || x.cat === "Lainnya") return;
+                tokensOf(normText(x.note)).forEach(w => { if (mine.has(w)) score[x.cat] = (score[x.cat] || 0) + 1; });
+            });
+            let best = null, bs = 0;
+            for (const c in score) if (score[c] > bs && state.categories[type].includes(c)) { best = c; bs = score[c]; }
+            return best;
+        }
+
+        function parseNaturalInput(text) {
+            if (!text || !text.trim()) return null;
+            const str = text.toLowerCase();
+            const dec = (v) => parseFloat(String(v).replace(",", "."));
+            let amount = 0;
+            const jt = str.match(/(\d+(?:[.,]\d+)?)\s*(?:jt|juta)\b/);
+            const rb = str.match(/(\d+(?:[.,]\d+)?)\s*(?:rb|ribu|k)\b/);
+            if (jt) amount = Math.round(dec(jt[1]) * 1000000);
+            else if (rb) amount = Math.round(dec(rb[1]) * 1000);
+            else {
+                const nums = [...str.matchAll(/\d[\d.]*/g)].map(m => parseInt(m[0].replace(/\./g, ""), 10) || 0);
+                if (nums.length) amount = Math.max(...nums);
+            }
+            if (!amount) amount = wordsToNumber(str);
+
+            const norm = normText(str);
+            const type = INCOME_WORDS.some(w => norm.includes(" " + w + " ")) ? "in" : "out";
+            const list = state.categories[type] || [];
+
+            let cat = null;
+            // 1) nama kategori disebut langsung (mis. "parkir 5rb" bila ada kategori Parkir)
+            const byName = list.filter(c => {
+                if (c === "Lainnya") return false;
+                const n = normText(c).trim();
+                return n && norm.includes(" " + n + " ");
+            }).sort((x, y) => y.length - x.length)[0];
+            if (byName) cat = byName;
+            // 2) kata kunci bawaan
+            if (!cat) {
+                for (const c of Object.keys(KEYWORDS[type])) {
+                    if (list.includes(c) && KEYWORDS[type][c].some(w => norm.includes(" " + w + " "))) { cat = c; break; }
+                }
+            }
+            // 3) belajar dari riwayat transaksi
+            if (!cat) cat = learnCategory(norm, type);
 
             return {
                 id: Date.now(),
-                amount: amount || 10000,
+                amount: amount,
                 type: type,
-                cat: safeCat(type, cat),
-                date: todayStr,
+                cat: cat || safeCat(type, "Lainnya"),
+                known: !!cat,
+                date: localToday(),
                 note: text.trim()
             };
         }
+        // ===== PARSER END =====
+
+        function openManualPrefill(p) {
+            editingTxId = null;
+            $("modalTxTitle").textContent = "Pilih Kategori";
+            (p.type === "in" ? $("btnTypeIn") : $("btnTypeOut")).click();
+            $("formAmount").value = p.amount.toLocaleString("id-ID");
+            $("formDate").value = p.date;
+            $("formNote").value = p.note;
+            if (state.categories[p.type].includes("Lainnya")) $("formCategory").value = "Lainnya";
+            $("btnDeleteTx").classList.add("hidden");
+            $("manualModal").classList.remove("hidden");
+        }
 
         $("btnSmartSubmit").onclick = () => {
-            const val = $("smartInput").value;
-            const parsed = parseNaturalInput(val);
-            if (parsed && parsed.amount > 0) {
-                state.tx.push(parsed);
+            const parsed = parseNaturalInput($("smartInput").value);
+            if (!parsed) return;
+            if (!parsed.amount) { toast("Nominal tidak terbaca. Contoh: Kopi 25rb"); return; }
+            if (!parsed.known) {
                 $("smartInput").value = "";
-                syncToCloud();
-                renderAll();
+                openManualPrefill(parsed);
+                toast("Kategori belum dikenali. Pilih dulu, lain kali otomatis.");
+                return;
             }
+            delete parsed.known;
+            state.tx.push(parsed);
+            $("smartInput").value = "";
+            syncToCloud();
+            renderAll();
+            toast("Tercatat: " + parsed.cat + " " + formatRp(parsed.amount));
         };
 
         // Speech-to-Text Integration
@@ -789,17 +929,21 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.lang = 'id-ID';
+            const defaultPlaceholder = $("smartInput").placeholder;
+            const resetMic = () => { $("smartInput").placeholder = defaultPlaceholder; };
 
             $("btnVoice").onclick = () => {
-                recognition.start();
+                try { recognition.start(); } catch (e) { /* sudah berjalan */ }
                 $("smartInput").placeholder = "Mendengarkan suara...";
             };
 
             recognition.onresult = (event) => {
-                const speechResult = event.results[0][0].transcript;
-                $("smartInput").value = speechResult;
+                $("smartInput").value = event.results[0][0].transcript;
+                resetMic();
                 $("btnSmartSubmit").click();
             };
+            recognition.onerror = () => { resetMic(); toast("Suara tidak terdengar. Coba lagi."); };
+            recognition.onend = resetMic;
         } else {
             $("btnVoice").style.display = 'none';
         }
@@ -826,6 +970,8 @@
         $("btnOpenManualModal").onclick = $("btnOpenManualModalMobile").onclick = () => {
             editingTxId = null;
             $("modalTxTitle").textContent = "Tambah Transaksi";
+            $("btnTypeOut").click();
+            $("formDate").value = localToday();
             $("formAmount").value = "";
             $("formNote").value = "";
             $("btnDeleteTx").classList.add("hidden");
@@ -884,7 +1030,7 @@
 
         // Render Functions
         function renderAll() {
-            const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonth = localToday().slice(0, 7);
             const monthTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth);
 
             const inc = monthTxs.filter(x => x.type === "in").reduce((a, b) => a + b.amount, 0);
@@ -914,6 +1060,8 @@
             renderQuick();
             renderSettings();
             renderFilterCats();
+            renderWidget();
+            runPending();
         }
 
         function renderRecentTx() {
@@ -1014,7 +1162,7 @@
 
             // Category Chart
             const ctxCat = $("chartCategory").getContext("2d");
-            const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonth = localToday().slice(0, 7);
             const expTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth && x.type === 'out');
             const catMap = {};
             expTxs.forEach(x => catMap[x.cat] = (catMap[x.cat] || 0) + x.amount);
@@ -1034,7 +1182,7 @@
         }
 
         function renderBudgets() {
-            const currentMonth = new Date().toISOString().slice(0, 7);
+            const currentMonth = localToday().slice(0, 7);
             const expTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth && x.type === 'out');
 
             $("budgetCategoryList").innerHTML = state.categories.out.map((cat, i) => {
@@ -1110,7 +1258,7 @@
             if (!b) return;
             const q = state.quickActions[+b.dataset.q];
             if (!q) return;
-            state.tx.push({ id: Date.now(), amount: q.amount, type: q.type, cat: safeCat(q.type, q.cat), date: todayStr, note: q.label });
+            state.tx.push({ id: Date.now(), amount: q.amount, type: q.type, cat: safeCat(q.type, q.cat), date: localToday(), note: q.label });
             syncToCloud();
             renderAll();
             toast("Tercatat: " + q.label);
@@ -1310,7 +1458,7 @@
             const i = +b.dataset.i, s = state.subscriptions[i];
             if (!s) return;
             if (b.dataset.act === "edit") { openSubModal(i); return; }
-            state.tx.push({ id: Date.now(), amount: s.amount, type: "out", cat: safeCat("out", s.cat), date: todayStr, note: s.name });
+            state.tx.push({ id: Date.now(), amount: s.amount, type: "out", cat: safeCat("out", s.cat), date: localToday(), note: s.name });
             syncToCloud();
             renderAll();
             toast("Tercatat: " + s.name);
@@ -1326,6 +1474,68 @@
         $("txSearch").addEventListener("input", renderFullTx);
         $("txFilterType").addEventListener("change", renderFullTx);
         $("txFilterCat").addEventListener("change", renderFullTx);
+
+        // ===== Mode Widget & Pintasan =====
+        const qs = new URLSearchParams(location.search);
+        let pendingAction = qs.get("action");
+        let pendingTab = qs.get("tab");
+
+        function renderWidget() {
+            if ($("widgetView").classList.contains("hidden")) return;
+            const t = localToday(), ym = t.slice(0, 7);
+            const sum = (f) => state.tx.filter(f).reduce((a, x) => a + x.amount, 0);
+            $("wBalance").textContent = formatRp(sum(x => x.type === "in") - sum(x => x.type === "out"));
+            $("wToday").textContent = formatRp(sum(x => x.type === "out" && x.date === t));
+            $("wMonthIn").textContent = formatRp(sum(x => x.type === "in" && x.date.slice(0, 7) === ym));
+            $("wMonthOut").textContent = formatRp(sum(x => x.type === "out" && x.date.slice(0, 7) === ym));
+            $("wDate").textContent = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+            $("wQuick").innerHTML = state.quickActions.map((q, i) => `
+                <button data-wq="${i}" class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left text-xs font-semibold active:scale-95 transition">
+                    ${esc(q.emoji || "⚡")} ${esc(q.label)}
+                    <span class="block text-[10px] font-normal text-slate-400 mt-0.5">${q.type === "in" ? "+" : ""}Rp ${shortRp(q.amount)}</span>
+                </button>
+            `).join("") || `<p class="col-span-2 text-xs text-slate-400">Belum ada aksi cepat. Atur di Pengaturan.</p>`;
+            const recent = [...state.tx].sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.id || 0) - (a.id || 0)).slice(0, 4);
+            $("wRecent").innerHTML = recent.map(x => `
+                <div class="flex items-center justify-between gap-2 p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
+                    <div class="min-w-0">
+                        <p class="font-semibold truncate">${esc(x.note || x.cat)}</p>
+                        <p class="text-[10px] text-slate-400">${esc(x.cat)} · ${esc(x.date)}</p>
+                    </div>
+                    <span class="font-bold shrink-0 ${x.type === "in" ? "text-emerald-500" : "text-rose-500"}">${x.type === "in" ? "+" : "-"}${formatRp(x.amount)}</span>
+                </div>
+            `).join("") || `<p class="text-xs text-slate-400">Belum ada transaksi.</p>`;
+        }
+
+        function setWidgetMode(on) {
+            $("widgetView").classList.toggle("hidden", !on);
+            if (on) renderWidget();
+            else history.replaceState(null, "", location.pathname);
+        }
+        $("wOpenApp").onclick = () => setWidgetMode(false);
+        $("btnOpenWidget").onclick = () => setWidgetMode(true);
+        $("wQuick").onclick = (e) => {
+            const b = e.target.closest("[data-wq]");
+            if (!b) return;
+            const q = state.quickActions[+b.dataset.wq];
+            if (!q) return;
+            state.tx.push({ id: Date.now(), amount: q.amount, type: q.type, cat: safeCat(q.type, q.cat), date: localToday(), note: q.label });
+            syncToCloud();
+            renderAll();
+            toast("Tercatat: " + q.label);
+        };
+        if (qs.get("view") === "widget") $("widgetView").classList.remove("hidden");
+
+        function runPending() {
+            if (!currentUser) return;
+            if (pendingTab) {
+                const b = document.querySelector('.nav-btn[data-nav="' + pendingTab + '"]');
+                pendingTab = null;
+                if (b) b.click();
+            }
+            if (pendingAction === "add") $("btnOpenManualModal").click();
+            pendingAction = null;
+        }
 
         // Export Actions
         $("btnExportCSV").onclick = () => {
