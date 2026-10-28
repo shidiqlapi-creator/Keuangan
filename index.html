@@ -296,6 +296,12 @@
                             <select id="txFilterCat" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none">
                                 <option value="">Semua Kategori</option>
                             </select>
+                            <div class="flex items-center gap-1">
+                                <input type="date" id="txDateFrom" title="Dari tanggal" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none">
+                                <span class="text-xs text-slate-400">s/d</span>
+                                <input type="date" id="txDateTo" title="Sampai tanggal" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs focus:outline-none">
+                                <button id="txDateReset" class="px-2.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold">Reset</button>
+                            </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <button id="btnExportCSV" class="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1">
@@ -307,6 +313,7 @@
                         </div>
                     </div>
 
+                    <p id="txSummary" class="text-[11px] text-slate-400"></p>
                     <div id="fullTxList" class="divide-y divide-slate-100 dark:divide-slate-800/60"></div>
                 </div>
             </div>
@@ -906,8 +913,77 @@
             $("manualModal").classList.remove("hidden");
         }
 
+        // Pisahkan beberapa pengeluaran dalam satu kalimat: "parkir 2000 makan 18000"
+        function splitEntries(text) {
+            const toks = String(text).trim().split(/\s+/).filter(Boolean);
+            const low = toks.map(t => t.toLowerCase().replace(/[,;]+$/, ""));
+            const n = low.length;
+            const NW = new Set(["nol", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas", "seratus", "seribu", "sejuta", "setengah", "belas", "puluh", "ratus", "ribu", "juta"]);
+            const UNIT = /^(?:jt|juta|rb|ribu|k)$/;
+            const NUMT = /^(?:rp\.?)?\d[\d.,]*(?:jt|juta|rb|ribu|k)?$/;
+            const CONN = new Set(["rupiah", "dan", "lalu", "terus", "trus", "kemudian", "sama", "plus", "serta"]);
+            const spans = [];
+            let i = 0;
+            while (i < n) {
+                const w = low[i];
+                let e = -1;
+                if (w === "rp" || w === "rp.") { if (i + 1 < n && NUMT.test(low[i + 1])) e = i + 1; }
+                else if (NUMT.test(w)) e = i;
+                if (e >= 0) {
+                    const m = low[e].replace(/^rp\.?/, "");
+                    let unit = /(jt|juta|rb|ribu|k)$/.test(m);
+                    const val = parseInt(m.replace(/[^\d]/g, ""), 10) || 0;
+                    if (!unit && e + 1 < n && UNIT.test(low[e + 1])) { unit = true; e++; }
+                    if (unit || val >= 100) spans.push([i, e]);
+                    i = e + 1;
+                    continue;
+                }
+                if (NW.has(w)) {
+                    let j = i;
+                    while (j < n && NW.has(low[j])) j++;
+                    if (wordsToNumber(low.slice(i, j).join(" ")) >= 100) spans.push([i, j - 1]);
+                    i = j;
+                    continue;
+                }
+                i++;
+            }
+            if (spans.length < 2) return [String(text).trim()];
+            const amountFirst = spans[0][0] === 0;
+            const parts = spans.map((sp, k) => {
+                const from = amountFirst ? sp[0] : (k === 0 ? 0 : spans[k - 1][1] + 1);
+                const to = amountFirst ? (k + 1 < spans.length ? spans[k + 1][0] - 1 : n - 1) : (k + 1 < spans.length ? sp[1] : n - 1);
+                let a = from, b = to;
+                while (a <= b && CONN.has(low[a]) && !(a >= sp[0] && a <= sp[1])) a++;
+                while (b >= a && CONN.has(low[b]) && !(b >= sp[0] && b <= sp[1])) b--;
+                return toks.slice(a, b + 1).join(" ");
+            });
+            return parts.filter(Boolean);
+        }
+
         $("btnSmartSubmit").onclick = () => {
-            const parsed = parseNaturalInput($("smartInput").value);
+            const raw = $("smartInput").value;
+            if (!raw.trim()) return;
+            const segs = splitEntries(raw);
+            if (segs.length > 1) {
+                const done = [];
+                let other = 0;
+                segs.forEach((seg, i) => {
+                    const p = parseNaturalInput(seg);
+                    if (!p || !p.amount) return;
+                    p.id = Date.now() + i;
+                    if (!p.known) other++;
+                    delete p.known;
+                    state.tx.push(p);
+                    done.push(p);
+                });
+                if (!done.length) { toast("Nominal tidak terbaca. Contoh: Parkir 2000 makan 18000"); return; }
+                $("smartInput").value = "";
+                syncToCloud();
+                renderAll();
+                toast(done.length + " transaksi tercatat: " + done.map(p => p.cat + " " + formatRp(p.amount)).join(", ") + (other ? " (" + other + " masuk Lainnya, ubah di menu Transaksi)" : ""));
+                return;
+            }
+            const parsed = parseNaturalInput(raw);
             if (!parsed) return;
             if (!parsed.amount) { toast("Nominal tidak terbaca. Contoh: Kopi 25rb"); return; }
             if (!parsed.known) {
@@ -938,7 +1014,7 @@
             };
 
             recognition.onresult = (event) => {
-                $("smartInput").value = event.results[0][0].transcript;
+                $("smartInput").value = Array.from(event.results).map(r => r[0].transcript).join(" ");
                 resetMic();
                 $("btnSmartSubmit").click();
             };
@@ -1108,13 +1184,20 @@
             const q = $("txSearch").value.toLowerCase();
             const typeFilter = $("txFilterType").value;
             const catFilter = $("txFilterCat").value;
+            const dFrom = $("txDateFrom").value;
+            const dTo = $("txDateTo").value;
 
             let filtered = state.tx.filter(x => {
                 const matchQ = (x.note + " " + x.cat).toLowerCase().includes(q);
                 const matchType = !typeFilter || x.type === typeFilter;
                 const matchCat = !catFilter || x.cat === catFilter;
-                return matchQ && matchType && matchCat;
+                const matchDate = (!dFrom || x.date >= dFrom) && (!dTo || x.date <= dTo);
+                return matchQ && matchType && matchCat && matchDate;
             }).sort((a, b) => b.date.localeCompare(a.date));
+
+            const sIn = filtered.filter(x => x.type === "in").reduce((a, b) => a + b.amount, 0);
+            const sOut = filtered.filter(x => x.type === "out").reduce((a, b) => a + b.amount, 0);
+            $("txSummary").textContent = filtered.length + " transaksi · Masuk " + formatRp(sIn) + " · Keluar " + formatRp(sOut);
 
             $("fullTxList").innerHTML = filtered.length ? filtered.map(x => `
                 <div class="flex items-center justify-between py-3 px-2 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl cursor-pointer" onclick="openEditModal(${x.id})">
@@ -1474,6 +1557,13 @@
         $("txSearch").addEventListener("input", renderFullTx);
         $("txFilterType").addEventListener("change", renderFullTx);
         $("txFilterCat").addEventListener("change", renderFullTx);
+        $("txDateFrom").addEventListener("change", () => {
+            // pilih satu tanggal saja: otomatis jadi 1 hari penuh, ubah "s/d" untuk rentang
+            if ($("txDateFrom").value && !$("txDateTo").value) $("txDateTo").value = $("txDateFrom").value;
+            renderFullTx();
+        });
+        $("txDateTo").addEventListener("change", renderFullTx);
+        $("txDateReset").addEventListener("click", () => { $("txDateFrom").value = ""; $("txDateTo").value = ""; renderFullTx(); });
 
         // ===== Mode Widget & Pintasan =====
         const qs = new URLSearchParams(location.search);
