@@ -206,6 +206,9 @@
             <!-- SECTIONS -->
             <!-- SECTION 1: DASHBOARD -->
             <div id="sec-dashboard" class="space-y-6 tab-content">
+                <!-- BATAS HARIAN -->
+                <div id="dailyCard" class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3"></div>
+
                 <!-- OVERVIEW CARDS -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div class="p-5 rounded-3xl bg-gradient-to-br from-indigo-600 to-indigo-800 text-white shadow-xl shadow-indigo-500/10 space-y-2">
@@ -337,6 +340,14 @@
 
             <!-- SECTION 4: ANGGARAN -->
             <div id="sec-anggaran" class="space-y-6 tab-content hidden">
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3>
+                        <p class="text-xs text-slate-400">Isi total kebutuhan yang pasti keluar bulan ini. Jatah per hari = total ÷ jumlah hari. Sisa jatah hari ini terbawa ke besok, dan kelebihan mengurangi jatah besok.</p>
+                    </div>
+                    <input id="dailyTotal" inputmode="numeric" placeholder="Total kebutuhan bulan ini (Rp). Kosong = pakai jumlah batas kategori" aria-label="Total kebutuhan bulanan" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none">
+                    <p id="dailyHint" class="text-[11px] text-slate-400"></p>
+                </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div>
                         <h3 class="font-bold text-slate-900 dark:text-white">Batas Anggaran Kategori</h3>
@@ -621,6 +632,7 @@
         let state = {
             tx: [],
             budgets: { Makanan: 1500000, Belanja: 1000000 },
+            daily: { total: 0 },
             subscriptions: [
                 { id: 1, name: "WiFi Indihome", amount: 350000, cat: "Tagihan", cycle: "bulanan" },
                 { id: 2, name: "Netflix Premium", amount: 186000, cat: "Hiburan", cycle: "bulanan" }
@@ -643,6 +655,8 @@
             s = (s && typeof s === "object") ? s : {};
             if (!Array.isArray(s.tx)) s.tx = [];
             if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
+            if (!s.daily || typeof s.daily !== "object") s.daily = { total: 0 };
+            s.daily.total = Number(s.daily.total) || 0;
             if (!Array.isArray(s.subscriptions)) s.subscriptions = [];
             if (!s.categories || !Array.isArray(s.categories.out) || !Array.isArray(s.categories.in) || !s.categories.out.length || !s.categories.in.length) {
                 s.categories = clone(DEFAULT_CATEGORIES);
@@ -1105,6 +1119,64 @@
         };
 
         // Render Functions
+        // ===== BATAS HARIAN (jatah dasar + sisa/kelebihan terbawa) =====
+        function dailyStats() {
+            const today = localToday(), ym = today.slice(0, 7);
+            const y = +today.slice(0, 4), m = +today.slice(5, 7);
+            const D = new Date(y, m, 0).getDate(), dNow = +today.slice(8, 10);
+            const fromBudgets = Object.values(state.budgets).reduce((a, b) => a + b, 0);
+            const total = state.daily.total > 0 ? state.daily.total : fromBudgets;
+            if (!total) return null;
+            const base = total / D, per = {};
+            state.tx.forEach(x => {
+                if (x.type === "out" && x.date.slice(0, 7) === ym) { const d = +x.date.slice(8, 10); per[d] = (per[d] || 0) + x.amount; }
+            });
+            let cum = 0;
+            const days = [];
+            for (let d = 1; d <= D; d++) {
+                const carry = base * (d - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
+                cum += per[d] || 0;
+                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * d - cum });
+            }
+            const t = days[dNow - 1];
+            let streak = 0;
+            for (let i = dNow - 1; i >= 0 && days[i].left >= 0; i--) streak++;
+            return { total, auto: !(state.daily.total > 0), D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
+        }
+
+        function renderDaily() {
+            const s = dailyStats();
+            const inp = $("dailyTotal");
+            if (document.activeElement !== inp) inp.value = state.daily.total ? state.daily.total.toLocaleString("id-ID") : "";
+            $("dailyHint").textContent = s ? `Jatah dasar ${formatRp(s.base)} per hari (${s.D} hari bulan ini)${s.auto ? " · otomatis dari total batas kategori" : ""}.` : "Belum diatur.";
+            const card = $("dailyCard");
+            if (!s) {
+                card.innerHTML = `<div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3><p class="text-xs text-slate-400">Atur total kebutuhan bulanan agar jatah harian dihitung otomatis.</p></div><button id="btnDailySetup" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shrink-0">Atur</button></div>`;
+                $("btnDailySetup").onclick = () => document.querySelector('.nav-btn[data-nav="anggaran"]').click();
+                return;
+            }
+            const t = s.t, over = t.left < 0;
+            const pct = t.avail > 0 ? Math.min(t.spent / t.avail * 100, 100) : (t.spent > 0 ? 100 : 0);
+            const sign = (v) => (v >= 0 ? "+" : "−") + formatRp(Math.abs(v));
+            const strip = s.days.map(d => {
+                const cls = d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.left >= 0 ? "bg-emerald-500" : "bg-rose-500");
+                return `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.left >= 0 ? "dalam batas" : "melebihi")}" class="h-2.5 flex-1 rounded-sm ${cls} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`;
+            }).join("");
+            card.innerHTML = `
+                <div class="flex items-center justify-between gap-2">
+                    <h3 class="font-bold text-slate-900 dark:text-white">Jatah Hari Ini</h3>
+                    <span class="text-[11px] px-2 py-0.5 rounded-full ${s.streak > 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"} font-semibold">${s.streak > 0 ? "🔥 " + s.streak + " hari dalam batas" : "Sudah melebihi batas"}</span>
+                </div>
+                <div>
+                    <p class="text-3xl font-extrabold ${over ? "text-rose-500" : "text-emerald-500"}">${formatRp(Math.abs(t.left))}</p>
+                    <p class="text-xs text-slate-400">${over ? "melebihi jatah (mengurangi jatah besok)" : "tersisa dari jatah hari ini"}</p>
+                </div>
+                <div class="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden"><div class="h-full ${over ? "bg-rose-500" : "bg-indigo-600"}" style="width:${pct}%"></div></div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">Jatah dasar ${formatRp(s.base)} ${sign(t.carry)} terbawa dari kemarin = ${formatRp(Math.max(t.avail, 0))} · terpakai ${formatRp(t.spent)}</p>
+                ${s.tomorrow !== null ? `<p class="text-[11px] text-slate-500 dark:text-slate-400">Perkiraan jatah besok: <span class="font-bold ${s.tomorrow < 0 ? "text-rose-500" : ""}">${formatRp(Math.max(s.tomorrow, 0))}</span>${s.tomorrow < 0 ? " (masih defisit " + formatRp(-s.tomorrow) + ")" : ""}</p>` : ""}
+                <div class="flex gap-0.5" aria-label="Status harian bulan ini">${strip}</div>`;
+        }
+
         function renderAll() {
             const currentMonth = localToday().slice(0, 7);
             const monthTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth);
@@ -1130,6 +1202,7 @@
             renderFullTx();
             renderCharts();
             renderBudgets();
+            renderDaily();
             renderSubscriptions();
             renderInsights();
             renderHeatmap();
@@ -1485,6 +1558,16 @@
             syncToCloud();
             renderAll();
         };
+
+        $("dailyTotal").addEventListener("input", (e) => {
+            const raw = cleanNumber(e.target.value);
+            e.target.value = raw ? raw.toLocaleString("id-ID") : "";
+        });
+        $("dailyTotal").addEventListener("change", (e) => {
+            state.daily.total = cleanNumber(e.target.value);
+            syncToCloud();
+            renderAll();
+        });
 
         ["newQAmount", "subAmount"].forEach(id => $(id).addEventListener("input", (e) => {
             const raw = cleanNumber(e.target.value);
