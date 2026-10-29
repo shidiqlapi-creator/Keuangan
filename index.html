@@ -340,6 +340,19 @@
 
             <!-- SECTION 4: ANGGARAN -->
             <div id="sec-anggaran" class="space-y-6 tab-content hidden">
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Rencana Keuangan Bulanan</h3>
+                        <p class="text-xs text-slate-400">Lihat total anggaranmu, lalu sisihkan jatah orang tua dan tabungan lebih dulu.</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div><label class="text-[11px] text-slate-400" for="planIncome">Perkiraan pemasukan / bulan</label><input id="planIncome" inputmode="numeric" placeholder="Kosong = pakai yang tercatat" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
+                        <div><label class="text-[11px] text-slate-400" for="planParents">Untuk orang tua / bulan</label><input id="planParents" inputmode="numeric" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
+                        <div><label class="text-[11px] text-slate-400" for="planSavings">Tabungan / bulan</label><input id="planSavings" inputmode="numeric" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
+                    </div>
+                    <div id="planSummary" class="space-y-2"></div>
+                    <ul id="planTips" class="text-xs text-slate-500 dark:text-slate-400 space-y-1.5 list-disc pl-4"></ul>
+                </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                     <div>
                         <h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3>
@@ -351,6 +364,7 @@
                     <div>
                         <h3 class="font-bold text-slate-900 dark:text-white">Batas Anggaran Kategori</h3>
                         <p class="text-xs text-slate-400">Atur batas maks pengeluaran per bulan. Peringatan akan aktif saat pengeluaran > 80%.</p>
+                        <p id="budgetTotalLine" class="mt-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400"></p>
                     </div>
                     <div id="budgetCategoryList" class="space-y-4"></div>
                 </div>
@@ -632,6 +646,7 @@
             tx: [],
             budgets: { Makanan: 1500000, Belanja: 1000000 },
             daily: { cats: null },
+            plan: { income: 0, parents: 0, savings: 0 },
             subscriptions: [
                 { id: 1, name: "WiFi Indihome", amount: 350000, cat: "Tagihan", cycle: "bulanan" },
                 { id: 2, name: "Netflix Premium", amount: 186000, cat: "Hiburan", cycle: "bulanan" }
@@ -656,6 +671,8 @@
             if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
             if (!s.daily || typeof s.daily !== "object") s.daily = { cats: null };
             if (!Array.isArray(s.daily.cats)) s.daily.cats = null;
+            if (!s.plan || typeof s.plan !== "object") s.plan = {};
+            ["income", "parents", "savings"].forEach(k => { s.plan[k] = Number(s.plan[k]) || 0; });
             if (!Array.isArray(s.subscriptions)) s.subscriptions = [];
             if (!s.categories || !Array.isArray(s.categories.out) || !Array.isArray(s.categories.in) || !s.categories.out.length || !s.categories.in.length) {
                 s.categories = clone(DEFAULT_CATEGORIES);
@@ -1180,6 +1197,41 @@
                 <div class="flex gap-0.5" aria-label="Status harian bulan ini">${strip}</div>`;
         }
 
+        function renderPlan() {
+            const ym = localToday().slice(0, 7);
+            const recIn = state.tx.filter(x => x.type === "in" && x.date.slice(0, 7) === ym).reduce((a, b) => a + b.amount, 0);
+            const inc = state.plan.income > 0 ? state.plan.income : recIn;
+            const bud = Object.values(state.budgets).reduce((a, b) => a + b, 0);
+            const par = state.plan.parents, sav = state.plan.savings;
+            const free = inc - bud - par - sav;
+            [["planIncome", "income"], ["planParents", "parents"], ["planSavings", "savings"]].forEach(([id, k]) => {
+                if (document.activeElement !== $(id)) $(id).value = state.plan[k] ? state.plan[k].toLocaleString("id-ID") : "";
+            });
+            const pc = (v) => inc > 0 ? ` · ${Math.round(v / inc * 100)}%` : "";
+            const row = (color, label, val) => `<div class="flex justify-between gap-2 text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-sm ${color}"></span>${label}</span><span class="font-bold">${formatRp(val)}${pc(val)}</span></div>`;
+            const seg = (color, v) => `<div class="h-full ${color}" style="width:${inc > 0 ? Math.min(Math.max(v, 0) / inc * 100, 100) : 0}%"></div>`;
+            $("planSummary").innerHTML = `
+                <div class="flex justify-between gap-2 text-xs"><span class="text-slate-400">Pemasukan ${state.plan.income > 0 ? "(perkiraan)" : "(tercatat bulan ini)"}</span><span class="font-bold">${formatRp(inc)}</span></div>
+                <div class="w-full h-3 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex">${seg("bg-indigo-600", bud)}${seg("bg-amber-500", par)}${seg("bg-emerald-500", sav)}</div>
+                ${row("bg-indigo-600", "Total anggaran kategori", bud)}
+                ${row("bg-amber-500", "Orang tua", par)}
+                ${row("bg-emerald-500", "Tabungan", sav)}
+                <div class="flex justify-between gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800"><span class="font-bold">Sisa belum dialokasikan</span><span class="font-extrabold ${free < 0 ? "text-rose-500" : "text-emerald-500"}">${free < 0 ? "−" : ""}${formatRp(Math.abs(free))}</span></div>`;
+            const tips = [];
+            if (!inc) tips.push("Isi perkiraan pemasukan bulanan agar alokasi bisa dihitung.");
+            else {
+                if (free < 0) tips.push(`Alokasi melebihi pemasukan sebesar ${formatRp(-free)}. Kurangi anggaran kategori, jatah orang tua, atau tabungan.`);
+                const sp = sav / inc * 100;
+                if (sav === 0) tips.push(`Belum ada tabungan. Patokan umum 10–20% pemasukan, yaitu ${formatRp(inc * 0.1)}–${formatRp(inc * 0.2)} per bulan.`);
+                else if (sp < 10) tips.push(`Tabungan ${Math.round(sp)}% dari pemasukan. Patokan umum 10–20%, naikkan bertahap.`);
+                else tips.push(`Tabungan ${Math.round(sp)}% dari pemasukan, sudah di kisaran yang umum disarankan.`);
+                if (free > 0) tips.push(`Ada sisa ${formatRp(free)} yang belum punya tujuan. Sebagian bisa dialihkan ke dana darurat agar tidak habis tanpa terasa.`);
+            }
+            tips.push("Sisihkan jatah orang tua dan tabungan di awal bulan begitu pemasukan masuk, bukan dari sisa akhir bulan.");
+            if (bud > 0) tips.push(`Dana darurat ideal 3–6 kali kebutuhan bulanan: ${formatRp(bud * 3)}–${formatRp(bud * 6)} (dari total anggaranmu).`);
+            $("planTips").innerHTML = tips.map(t => `<li>${esc(t)}</li>`).join("");
+        }
+
         function renderAll() {
             const currentMonth = localToday().slice(0, 7);
             const monthTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth);
@@ -1206,6 +1258,7 @@
             renderCharts();
             renderBudgets();
             renderDaily();
+            renderPlan();
             renderSubscriptions();
             renderInsights();
             renderHeatmap();
@@ -1343,6 +1396,12 @@
         function renderBudgets() {
             const currentMonth = localToday().slice(0, 7);
             const expTxs = state.tx.filter(x => x.date.slice(0, 7) === currentMonth && x.type === 'out');
+            {
+                const capped = state.categories.out.filter(c => (state.budgets[c] || 0) > 0);
+                const tot = capped.reduce((a, c) => a + state.budgets[c], 0);
+                const used = expTxs.filter(x => capped.includes(x.cat)).reduce((a, b) => a + b.amount, 0);
+                $("budgetTotalLine").textContent = tot ? `Total anggaran sebulan: ${formatRp(tot)} (${capped.length} kategori) · terpakai ${formatRp(used)} (${Math.round(used / tot * 100)}%) · sisa ${formatRp(tot - used)}` : "Belum ada batas anggaran yang diatur.";
+            }
 
             $("budgetCategoryList").innerHTML = state.categories.out.map((cat, i) => {
                 const spent = expTxs.filter(x => x.cat === cat).reduce((a, b) => a + b.amount, 0);
@@ -1574,6 +1633,18 @@
             syncToCloud();
             renderAll();
         };
+
+        [["planIncome", "income"], ["planParents", "parents"], ["planSavings", "savings"]].forEach(([id, k]) => {
+            $(id).addEventListener("input", (e) => {
+                const raw = cleanNumber(e.target.value);
+                e.target.value = raw ? raw.toLocaleString("id-ID") : "";
+            });
+            $(id).addEventListener("change", (e) => {
+                state.plan[k] = cleanNumber(e.target.value);
+                syncToCloud();
+                renderAll();
+            });
+        });
 
         ["newQAmount", "subAmount"].forEach(id => $(id).addEventListener("input", (e) => {
             const raw = cleanNumber(e.target.value);
