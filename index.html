@@ -1158,12 +1158,15 @@
             for (let d = 1; d <= D; d++) {
                 const carry = base * (d - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
                 cum += per[d] || 0;
-                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * d - cum });
+                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * d - cum, over: (per[d] || 0) > base + 0.5 });
             }
             const t = days[dNow - 1];
             let streak = 0;
             for (let i = dNow - 1; i >= 0 && days[i].left >= 0; i--) streak++;
-            return { total, cats, D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
+            let overDays = 0, streakBase = 0;
+            for (let i = 0; i < dNow; i++) if (days[i].over) overDays++;
+            for (let i = dNow - 1; i >= 0 && !days[i].over; i--) streakBase++;
+            return { overDays, streakBase, total, cats, D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
         }
 
         function renderDaily() {
@@ -1176,6 +1179,9 @@
                 return;
             }
             const t = s.t, over = t.left < 0;
+            const baseOver = t.spent > s.base + 0.5;
+            const bpct = Math.min(t.spent / s.base * 100, 100);
+            const strip2 = s.days.map(d => `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.over ? "melewati jatah dasar" : "dalam jatah dasar")}" class="h-2.5 flex-1 rounded-sm ${d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.over ? "bg-amber-500" : "bg-emerald-500")} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`).join("");
             const pct = t.avail > 0 ? Math.min(t.spent / t.avail * 100, 100) : (t.spent > 0 ? 100 : 0);
             const sign = (v) => (v >= 0 ? "+" : "−") + formatRp(Math.abs(v));
             const strip = s.days.map(d => {
@@ -1194,7 +1200,17 @@
                 <div class="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden"><div class="h-full ${over ? "bg-rose-500" : "bg-indigo-600"}" style="width:${pct}%"></div></div>
                 <p class="text-[11px] text-slate-500 dark:text-slate-400">Jatah dasar ${formatRp(s.base)} ${sign(t.carry)} terbawa dari kemarin = ${formatRp(Math.max(t.avail, 0))} · terpakai ${formatRp(t.spent)}</p>
                 ${s.tomorrow !== null ? `<p class="text-[11px] text-slate-500 dark:text-slate-400">Perkiraan jatah besok: <span class="font-bold ${s.tomorrow < 0 ? "text-rose-500" : ""}">${formatRp(Math.max(s.tomorrow, 0))}</span>${s.tomorrow < 0 ? " (masih defisit " + formatRp(-s.tomorrow) + ")" : ""}</p>` : ""}
-                <div class="flex gap-0.5" aria-label="Status harian bulan ini">${strip}</div>`;
+                <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5">
+                    <p class="text-[11px] ${baseOver ? (over ? "text-rose-500" : "text-amber-500") : "text-slate-500 dark:text-slate-400"}">Terhadap jatah dasar ${formatRp(s.base)} saja (tanpa sisa terbawa): terpakai ${formatRp(t.spent)} (${Math.round(t.spent / s.base * 100)}%)${baseOver ? " · melewati " + formatRp(t.spent - s.base) + (over ? "" : ", masih tertutup sisa kemarin") : " · aman"}</p>
+                    <div class="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden"><div class="h-full ${baseOver ? "bg-amber-500" : "bg-emerald-500"}" style="width:${bpct}%"></div></div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400">Melewati jatah dasar: ${s.overDays} hari bulan ini · ${s.streakBase} hari berturut-turut sesuai jatah dasar</p>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-[10px] text-slate-400">Status akumulasi (dengan sisa terbawa)</p>
+                    <div class="flex gap-0.5" aria-label="Status akumulasi bulan ini">${strip}</div>
+                    <p class="text-[10px] text-slate-400">Status jatah dasar per hari (amber = melewati)</p>
+                    <div class="flex gap-0.5" aria-label="Status jatah dasar bulan ini">${strip2}</div>
+                </div>`;
         }
 
         function renderPlan() {
