@@ -343,9 +343,8 @@
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
                     <div>
                         <h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3>
-                        <p class="text-xs text-slate-400">Isi total kebutuhan yang pasti keluar bulan ini. Jatah per hari = total ÷ jumlah hari. Sisa jatah hari ini terbawa ke besok, dan kelebihan mengurangi jatah besok.</p>
+                        <p class="text-xs text-slate-400">Total = penjumlahan batas kategori yang kamu centang "Hitung ke batas harian" di bawah. Jatah per hari = total ÷ jumlah hari. Hanya pengeluaran kategori terpilih yang dihitung. Sisa hari ini terbawa ke besok, kelebihan mengurangi jatah besok.</p>
                     </div>
-                    <input id="dailyTotal" inputmode="numeric" placeholder="Total kebutuhan bulan ini (Rp). Kosong = pakai jumlah batas kategori" aria-label="Total kebutuhan bulanan" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none">
                     <p id="dailyHint" class="text-[11px] text-slate-400"></p>
                 </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -632,7 +631,7 @@
         let state = {
             tx: [],
             budgets: { Makanan: 1500000, Belanja: 1000000 },
-            daily: { total: 0 },
+            daily: { cats: null },
             subscriptions: [
                 { id: 1, name: "WiFi Indihome", amount: 350000, cat: "Tagihan", cycle: "bulanan" },
                 { id: 2, name: "Netflix Premium", amount: 186000, cat: "Hiburan", cycle: "bulanan" }
@@ -655,8 +654,8 @@
             s = (s && typeof s === "object") ? s : {};
             if (!Array.isArray(s.tx)) s.tx = [];
             if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
-            if (!s.daily || typeof s.daily !== "object") s.daily = { total: 0 };
-            s.daily.total = Number(s.daily.total) || 0;
+            if (!s.daily || typeof s.daily !== "object") s.daily = { cats: null };
+            if (!Array.isArray(s.daily.cats)) s.daily.cats = null;
             if (!Array.isArray(s.subscriptions)) s.subscriptions = [];
             if (!s.categories || !Array.isArray(s.categories.out) || !Array.isArray(s.categories.in) || !s.categories.out.length || !s.categories.in.length) {
                 s.categories = clone(DEFAULT_CATEGORIES);
@@ -1120,16 +1119,22 @@
 
         // Render Functions
         // ===== BATAS HARIAN (jatah dasar + sisa/kelebihan terbawa) =====
+        function dailyCats() {
+            const all = state.categories.out;
+            if (Array.isArray(state.daily.cats)) return all.filter(c => state.daily.cats.includes(c));
+            return all.filter(c => (state.budgets[c] || 0) > 0);
+        }
+
         function dailyStats() {
             const today = localToday(), ym = today.slice(0, 7);
             const y = +today.slice(0, 4), m = +today.slice(5, 7);
             const D = new Date(y, m, 0).getDate(), dNow = +today.slice(8, 10);
-            const fromBudgets = Object.values(state.budgets).reduce((a, b) => a + b, 0);
-            const total = state.daily.total > 0 ? state.daily.total : fromBudgets;
+            const cats = dailyCats().filter(c => (state.budgets[c] || 0) > 0);
+            const total = cats.reduce((a, c) => a + state.budgets[c], 0);
             if (!total) return null;
             const base = total / D, per = {};
             state.tx.forEach(x => {
-                if (x.type === "out" && x.date.slice(0, 7) === ym) { const d = +x.date.slice(8, 10); per[d] = (per[d] || 0) + x.amount; }
+                if (x.type === "out" && cats.includes(x.cat) && x.date.slice(0, 7) === ym) { const d = +x.date.slice(8, 10); per[d] = (per[d] || 0) + x.amount; }
             });
             let cum = 0;
             const days = [];
@@ -1141,17 +1146,15 @@
             const t = days[dNow - 1];
             let streak = 0;
             for (let i = dNow - 1; i >= 0 && days[i].left >= 0; i--) streak++;
-            return { total, auto: !(state.daily.total > 0), D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
+            return { total, cats, D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
         }
 
         function renderDaily() {
             const s = dailyStats();
-            const inp = $("dailyTotal");
-            if (document.activeElement !== inp) inp.value = state.daily.total ? state.daily.total.toLocaleString("id-ID") : "";
-            $("dailyHint").textContent = s ? `Jatah dasar ${formatRp(s.base)} per hari (${s.D} hari bulan ini)${s.auto ? " · otomatis dari total batas kategori" : ""}.` : "Belum diatur.";
+            $("dailyHint").textContent = s ? `Total ${formatRp(s.total)} dari ${s.cats.length} kategori (${s.cats.join(", ")}) · jatah dasar ${formatRp(s.base)} per hari untuk ${s.D} hari.` : "Isi batas kategori lalu centang yang masuk batas harian.";
             const card = $("dailyCard");
             if (!s) {
-                card.innerHTML = `<div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3><p class="text-xs text-slate-400">Atur total kebutuhan bulanan agar jatah harian dihitung otomatis.</p></div><button id="btnDailySetup" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shrink-0">Atur</button></div>`;
+                card.innerHTML = `<div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3><p class="text-xs text-slate-400">Isi batas kategori di menu Anggaran dan centang yang masuk hitungan agar jatah harian terhitung.</p></div><button id="btnDailySetup" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shrink-0">Atur</button></div>`;
                 $("btnDailySetup").onclick = () => document.querySelector('.nav-btn[data-nav="anggaran"]').click();
                 return;
             }
@@ -1346,6 +1349,7 @@
                 const limit = state.budgets[cat] || 0;
                 const percent = limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
                 const isOver = limit > 0 && spent > limit;
+                const inDaily = dailyCats().includes(cat) && limit > 0;
 
                 return `
                     <div class="space-y-1">
@@ -1357,6 +1361,7 @@
                             <div class="h-full ${isOver ? 'bg-rose-500' : 'bg-indigo-600'}" style="width: ${percent}%"></div>
                         </div>
                         <input data-bud="${i}" inputmode="numeric" value="${limit ? limit.toLocaleString('id-ID') : ''}" placeholder="Atur batas bulanan (Rp)" aria-label="Batas ${esc(cat)}" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400"><input type="checkbox" data-daily="${i}" ${inDaily ? "checked" : ""} ${limit ? "" : "disabled"}> Hitung ke batas harian</label>
                     </div>
                 `;
             }).join("");
@@ -1549,6 +1554,17 @@
         };
 
         $("budgetCategoryList").onchange = (e) => {
+            const dl = e.target.closest("[data-daily]");
+            if (dl) {
+                const cat = state.categories.out[+dl.dataset.daily];
+                if (cat === undefined) return;
+                const cur = new Set(dailyCats());
+                if (dl.checked) cur.add(cat); else cur.delete(cat);
+                state.daily.cats = state.categories.out.filter(c => cur.has(c));
+                syncToCloud();
+                renderAll();
+                return;
+            }
             const el = e.target.closest("[data-bud]");
             if (!el) return;
             const cat = state.categories.out[+el.dataset.bud];
@@ -1558,16 +1574,6 @@
             syncToCloud();
             renderAll();
         };
-
-        $("dailyTotal").addEventListener("input", (e) => {
-            const raw = cleanNumber(e.target.value);
-            e.target.value = raw ? raw.toLocaleString("id-ID") : "";
-        });
-        $("dailyTotal").addEventListener("change", (e) => {
-            state.daily.total = cleanNumber(e.target.value);
-            syncToCloud();
-            renderAll();
-        });
 
         ["newQAmount", "subAmount"].forEach(id => $(id).addEventListener("input", (e) => {
             const raw = cleanNumber(e.target.value);
