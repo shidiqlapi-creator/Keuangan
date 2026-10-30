@@ -343,12 +343,10 @@
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div>
                         <h3 class="font-bold text-slate-900 dark:text-white">Rencana Keuangan Bulanan</h3>
-                        <p class="text-xs text-slate-400">Lihat total anggaranmu, lalu sisihkan jatah orang tua dan tabungan lebih dulu.</p>
+                        <p class="text-xs text-slate-400">Orang tua dan tabungan dihitung dari kategori yang kamu tandai jenisnya di daftar anggaran, jadi tidak terhitung dua kali.</p>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="grid grid-cols-1 gap-3">
                         <div><label class="text-[11px] text-slate-400" for="planIncome">Perkiraan pemasukan / bulan</label><input id="planIncome" inputmode="numeric" placeholder="Kosong = pakai yang tercatat" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400" for="planParents">Untuk orang tua / bulan</label><input id="planParents" inputmode="numeric" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
-                        <div><label class="text-[11px] text-slate-400" for="planSavings">Tabungan / bulan</label><input id="planSavings" inputmode="numeric" placeholder="0" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-sm focus:outline-none"></div>
                     </div>
                     <div id="planSummary" class="space-y-2"></div>
                     <ul id="planTips" class="text-xs text-slate-500 dark:text-slate-400 space-y-1.5 list-disc pl-4"></ul>
@@ -443,19 +441,35 @@
 
             <!-- SECTION 5: ANALISIS & TIPS -->
             <div id="sec-analisis" class="space-y-6 tab-content hidden">
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-900 dark:text-white">Ringkasan Bulan Ini</h3>
+                    <div id="anSummary" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div>
+                    <div id="anKinds" class="space-y-2"></div>
+                    <div id="anForecast" class="text-xs"></div>
+                </div>
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2"><i class="ph-bold ph-lightbulb text-amber-500"></i> Temuan Otomatis</h3>
+                    <ul id="insightsList" class="space-y-2 text-xs text-slate-600 dark:text-slate-300"></ul>
+                </div>
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-900 dark:text-white">Tren 6 Bulan</h3>
+                    <div class="h-56"><canvas id="anTrend"></canvas></div>
+                </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                        <h3 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <i class="ph-bold ph-lightbulb text-amber-500"></i> Smart Insights & Tips
-                        </h3>
-                        <ul id="insightsList" class="space-y-2 text-xs text-slate-600 dark:text-slate-300"></ul>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Pola Pengeluaran per Hari</h3>
+                        <p class="text-[11px] text-slate-400">Rata-rata pengeluaran kebutuhan per hari dalam seminggu (12 minggu terakhir).</p>
+                        <div id="anDow" class="space-y-1.5"></div>
                     </div>
-
                     <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-                        <h3 class="font-bold text-slate-900 dark:text-white">Peta Intensitas Belanja (12 Minggu)</h3>
-                        <svg id="spendingHeatmap" viewBox="0 0 252 147" class="w-full h-auto mt-2"></svg>
-                        <p id="heatmapDetail" class="text-xs text-slate-400">Ketuk kotak heatmap untuk melihat detail harian.</p>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Perubahan per Kategori</h3>
+                        <p class="text-[11px] text-slate-400">Bulan ini dibanding bulan lalu (kategori kebutuhan).</p>
+                        <div id="anCatDelta" class="space-y-2"></div>
                     </div>
+                </div>
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-900 dark:text-white">Transaksi Terbesar & Pengeluaran Kecil</h3>
+                    <div id="anBig" class="space-y-1.5 text-xs"></div>
                 </div>
             </div>
         </main>
@@ -647,6 +661,7 @@
             budgets: { Makanan: 1500000, Belanja: 1000000 },
             daily: { cats: null },
             plan: { income: 0, parents: 0, savings: 0 },
+            catKind: {},
             subscriptions: [
                 { id: 1, name: "WiFi Indihome", amount: 350000, cat: "Tagihan", cycle: "bulanan" },
                 { id: 2, name: "Netflix Premium", amount: 186000, cat: "Hiburan", cycle: "bulanan" }
@@ -673,6 +688,7 @@
             if (!Array.isArray(s.daily.cats)) s.daily.cats = null;
             if (!s.plan || typeof s.plan !== "object") s.plan = {};
             ["income", "parents", "savings"].forEach(k => { s.plan[k] = Number(s.plan[k]) || 0; });
+            if (!s.catKind || typeof s.catKind !== "object") s.catKind = {};
             if (!Array.isArray(s.subscriptions)) s.subscriptions = [];
             if (!s.categories || !Array.isArray(s.categories.out) || !Array.isArray(s.categories.in) || !s.categories.out.length || !s.categories.in.length) {
                 s.categories = clone(DEFAULT_CATEGORIES);
@@ -1062,6 +1078,7 @@
                 document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
                 document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active", "text-indigo-600", "dark:text-indigo-400"));
                 $(`sec-${target}`).classList.remove("hidden");
+                if (target === "analisis") renderAnalytics();
                 $("pageTitle").textContent = ({ dashboard: "Dashboard", transaksi: "Transaksi", langganan: "Rutin & Tagihan", anggaran: "Anggaran", analisis: "Statistik & Tips", pengaturan: "Pengaturan" })[target] || target;
                 btn.classList.add("active", "text-indigo-600", "dark:text-indigo-400");
             };
@@ -1136,8 +1153,17 @@
 
         // Render Functions
         // ===== BATAS HARIAN (jatah dasar + sisa/kelebihan terbawa) =====
+        // Jenis kategori: need (kebutuhan), parents (orang tua), savings (tabungan). Otomatis dari nama bila belum dipilih.
+        function kindOf(c) {
+            const k = state.catKind && state.catKind[c];
+            if (k) return k;
+            if (/nabung|tabung|invest|dana darurat/i.test(c)) return "savings";
+            if (/orang\s*tua|ortu/i.test(c)) return "parents";
+            return "need";
+        }
+
         function dailyCats() {
-            const all = state.categories.out;
+            const all = state.categories.out.filter(c => kindOf(c) === "need");
             if (Array.isArray(state.daily.cats)) return all.filter(c => state.daily.cats.includes(c));
             return all.filter(c => (state.budgets[c] || 0) > 0);
         }
@@ -1217,28 +1243,29 @@
             const ym = localToday().slice(0, 7);
             const recIn = state.tx.filter(x => x.type === "in" && x.date.slice(0, 7) === ym).reduce((a, b) => a + b.amount, 0);
             const inc = state.plan.income > 0 ? state.plan.income : recIn;
-            const bud = Object.values(state.budgets).reduce((a, b) => a + b, 0);
-            const par = state.plan.parents, sav = state.plan.savings;
+            const sumK = (k) => state.categories.out.filter(c => kindOf(c) === k).reduce((a, c) => a + (state.budgets[c] || 0), 0);
+            const realK = (k) => state.tx.filter(x => x.type === "out" && x.date.slice(0, 7) === ym && kindOf(x.cat) === k).reduce((a, b) => a + b.amount, 0);
+            const bud = sumK("need"), par = sumK("parents"), sav = sumK("savings");
             const free = inc - bud - par - sav;
-            [["planIncome", "income"], ["planParents", "parents"], ["planSavings", "savings"]].forEach(([id, k]) => {
+            [["planIncome", "income"]].forEach(([id, k]) => {
                 if (document.activeElement !== $(id)) $(id).value = state.plan[k] ? state.plan[k].toLocaleString("id-ID") : "";
             });
             const pc = (v) => inc > 0 ? ` · ${Math.round(v / inc * 100)}%` : "";
-            const row = (color, label, val) => `<div class="flex justify-between gap-2 text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-sm ${color}"></span>${label}</span><span class="font-bold">${formatRp(val)}${pc(val)}</span></div>`;
+            const row = (color, label, val, real) => `<div class="flex justify-between gap-2 text-xs"><span class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-sm ${color}"></span>${label}</span><span class="font-bold">${formatRp(val)}${pc(val)}${real !== undefined ? ` <span class="text-[10px] font-normal text-slate-400">(terealisasi ${formatRp(real)})</span>` : ""}</span></div>`;
             const seg = (color, v) => `<div class="h-full ${color}" style="width:${inc > 0 ? Math.min(Math.max(v, 0) / inc * 100, 100) : 0}%"></div>`;
             $("planSummary").innerHTML = `
                 <div class="flex justify-between gap-2 text-xs"><span class="text-slate-400">Pemasukan ${state.plan.income > 0 ? "(perkiraan)" : "(tercatat bulan ini)"}</span><span class="font-bold">${formatRp(inc)}</span></div>
                 <div class="w-full h-3 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex">${seg("bg-indigo-600", bud)}${seg("bg-amber-500", par)}${seg("bg-emerald-500", sav)}</div>
-                ${row("bg-indigo-600", "Total anggaran kategori", bud)}
-                ${row("bg-amber-500", "Orang tua", par)}
-                ${row("bg-emerald-500", "Tabungan", sav)}
+                ${row("bg-indigo-600", "Anggaran kebutuhan", bud)}
+                ${row("bg-amber-500", "Orang tua", par, realK("parents"))}
+                ${row("bg-emerald-500", "Tabungan", sav, realK("savings"))}
                 <div class="flex justify-between gap-2 text-xs pt-2 border-t border-slate-100 dark:border-slate-800"><span class="font-bold">Sisa belum dialokasikan</span><span class="font-extrabold ${free < 0 ? "text-rose-500" : "text-emerald-500"}">${free < 0 ? "−" : ""}${formatRp(Math.abs(free))}</span></div>`;
             const tips = [];
             if (!inc) tips.push("Isi perkiraan pemasukan bulanan agar alokasi bisa dihitung.");
             else {
                 if (free < 0) tips.push(`Alokasi melebihi pemasukan sebesar ${formatRp(-free)}. Kurangi anggaran kategori, jatah orang tua, atau tabungan.`);
                 const sp = sav / inc * 100;
-                if (sav === 0) tips.push(`Belum ada tabungan. Patokan umum 10–20% pemasukan, yaitu ${formatRp(inc * 0.1)}–${formatRp(inc * 0.2)} per bulan.`);
+                if (sav === 0) tips.push(`Belum ada alokasi tabungan (buat kategori Menabung, isi batasnya, lalu pilih jenis Tabungan). Patokan umum 10–20% pemasukan, yaitu ${formatRp(inc * 0.1)}–${formatRp(inc * 0.2)} per bulan.`);
                 else if (sp < 10) tips.push(`Tabungan ${Math.round(sp)}% dari pemasukan. Patokan umum 10–20%, naikkan bertahap.`);
                 else tips.push(`Tabungan ${Math.round(sp)}% dari pemasukan, sudah di kisaran yang umum disarankan.`);
                 if (free > 0) tips.push(`Ada sisa ${formatRp(free)} yang belum punya tujuan. Sebagian bisa dialihkan ke dana darurat agar tidak habis tanpa terasa.`);
@@ -1276,8 +1303,7 @@
             renderDaily();
             renderPlan();
             renderSubscriptions();
-            renderInsights();
-            renderHeatmap();
+            renderAnalytics();
             renderQuick();
             renderSettings();
             renderFilterCats();
@@ -1436,7 +1462,10 @@
                             <div class="h-full ${isOver ? 'bg-rose-500' : 'bg-indigo-600'}" style="width: ${percent}%"></div>
                         </div>
                         <input data-bud="${i}" inputmode="numeric" value="${limit ? limit.toLocaleString('id-ID') : ''}" placeholder="Atur batas bulanan (Rp)" aria-label="Batas ${esc(cat)}" class="w-full mt-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <label class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400"><input type="checkbox" data-daily="${i}" ${inDaily ? "checked" : ""} ${limit ? "" : "disabled"}> Hitung ke batas harian</label>
+                        <div class="flex items-center justify-between gap-2">
+                            <select data-kind="${i}" aria-label="Jenis ${esc(cat)}" class="px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-[11px]">${[["need", "Kebutuhan"], ["parents", "Orang tua"], ["savings", "Tabungan"]].map(([v, l]) => `<option value="${v}" ${kindOf(cat) === v ? "selected" : ""}>${l}</option>`).join("")}</select>
+                            <label class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400"><input type="checkbox" data-daily="${i}" ${inDaily ? "checked" : ""} ${limit && kindOf(cat) === "need" ? "" : "disabled"}> Hitung ke batas harian</label>
+                        </div>
                     </div>
                 `;
             }).join("");
@@ -1461,21 +1490,99 @@
             `).join("") : `<p class="text-xs text-slate-400 py-6 text-center md:col-span-2 lg:col-span-3">Belum ada tagihan rutin. Ketuk "+ Tambah Rutin".</p>`;
         }
 
-        function renderInsights() {
-            const tips = [
-                "💡 Hemat hingga 15% dengan membatasi pengeluaran kategori Makanan Murni.",
-                "📊 Savings rate ideal berada di atas 20% dari total pemasukan bulananmu.",
-                "⚡ Gunakan fitur aksi cepat 1-klik untuk konsistensi pencatatan harian."
-            ];
-            $("insightsList").innerHTML = tips.map(t => `<li class="p-2 bg-indigo-50/50 dark:bg-slate-800/40 rounded-xl border border-indigo-100 dark:border-slate-800">${t}</li>`).join("");
-        }
+        // ===== ANALISIS (data nyata) =====
+        let anChart = null;
+        function renderAnalytics() {
+            const today = localToday(), Y = +today.slice(0, 4), M = +today.slice(5, 7);
+            const D = new Date(Y, M, 0).getDate(), dNow = +today.slice(8, 10);
+            const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+            const mkey = (off) => iso(new Date(Y, M - 1 + off, 1)).slice(0, 7);
+            const sumM = (key) => {
+                const r = { inc: 0, need: 0, par: 0, sav: 0, cat: {} };
+                state.tx.forEach(x => {
+                    if (x.date.slice(0, 7) !== key) return;
+                    if (x.type === "in") { r.inc += x.amount; return; }
+                    const k = kindOf(x.cat);
+                    if (k === "need") { r.need += x.amount; r.cat[x.cat] = (r.cat[x.cat] || 0) + x.amount; }
+                    else if (k === "parents") r.par += x.amount; else r.sav += x.amount;
+                });
+                return r;
+            };
+            const cur = sumM(mkey(0)), prev = sumM(mkey(-1));
+            const sur = (r) => r.inc - r.need - r.par - r.sav;
+            const dl = (a, b, goodUp) => {
+                if (!b) return "";
+                const p = Math.round((a - b) / Math.abs(b) * 100);
+                if (!p) return `<span class="text-[10px] text-slate-400">sama dengan bulan lalu</span>`;
+                const good = goodUp ? p > 0 : p < 0;
+                return `<span class="text-[10px] ${good ? "text-emerald-500" : "text-rose-500"}">${p > 0 ? "▲" : "▼"} ${Math.abs(p)}% vs bulan lalu</span>`;
+            };
+            const box = (label, val, d) => `<div class="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50"><p class="text-[10px] text-slate-400">${label}</p><p class="text-sm font-extrabold ${val < 0 ? "text-rose-500" : ""}">${val < 0 ? "−" : ""}${formatRp(Math.abs(val))}</p>${d}</div>`;
+            $("anSummary").innerHTML = box("Pemasukan", cur.inc, dl(cur.inc, prev.inc, true)) + box("Pengeluaran kebutuhan", cur.need, dl(cur.need, prev.need, false)) + box("Orang tua + tabungan", cur.par + cur.sav, dl(cur.par + cur.sav, prev.par + prev.sav, true)) + box("Sisa (surplus)", sur(cur), dl(sur(cur), sur(prev), true));
 
-        function renderHeatmap() {
-            let h = "";
-            for (let j = 0; j < 84; j++) {
-                h += `<rect x="${Math.floor(j / 7) * 21}" y="${(j % 7) * 21}" width="18" height="18" rx="4" fill="var(--color-indigo-500, #6366f1)" fill-opacity="${(j % 5) * 0.2}" />`;
+            const bar = (color, label, v) => `<div><div class="flex justify-between text-[11px]"><span>${label}</span><span class="font-semibold">${formatRp(Math.abs(v))}${cur.inc > 0 ? " · " + Math.round(v / cur.inc * 100) + "%" : ""}</span></div><div class="w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full ${color}" style="width:${cur.inc > 0 ? Math.min(Math.max(v, 0) / cur.inc * 100, 100) : 0}%"></div></div></div>`;
+            $("anKinds").innerHTML = cur.inc > 0 ? `<p class="text-[11px] text-slate-400">Ke mana pemasukan bulan ini pergi</p>` + bar("bg-rose-500", "Kebutuhan", cur.need) + bar("bg-amber-500", "Orang tua", cur.par) + bar("bg-emerald-500", "Tabungan", cur.sav) + bar("bg-slate-400", "Sisa", sur(cur)) : `<p class="text-[11px] text-slate-400">Catat pemasukan bulan ini untuk melihat pembagiannya.</p>`;
+
+            const needCats = state.categories.out.filter(c => kindOf(c) === "need");
+            const bud = needCats.reduce((a, c) => a + (state.budgets[c] || 0), 0);
+            const proj = cur.need / dNow * D;
+            $("anForecast").innerHTML = cur.need > 0 ? `Rata-rata kebutuhan <b>${formatRp(cur.need / dNow)}</b> per hari. Dengan laju ini, akhir bulan ≈ <b>${formatRp(proj)}</b>` + (bud > 0 ? ` (${Math.round(proj / bud * 100)}% dari anggaran ${formatRp(bud)}). <span class="${proj > bud ? "text-rose-500" : "text-emerald-500"} font-semibold">${proj > bud ? "Diperkirakan melebihi anggaran " + formatRp(proj - bud) : "Diperkirakan aman, sisa " + formatRp(bud - proj)}</span>` : ".") : "";
+
+            if (!$("sec-analisis").classList.contains("hidden")) {
+                const keys = [-5, -4, -3, -2, -1, 0].map(mkey), S = keys.map(sumM);
+                const lab = keys.map(k => new Date(+k.slice(0, 4), +k.slice(5, 7) - 1, 1).toLocaleDateString("id-ID", { month: "short" }));
+                if (anChart) anChart.destroy();
+                anChart = new Chart($("anTrend").getContext("2d"), {
+                    type: "bar",
+                    data: { labels: lab, datasets: [
+                        { label: "Pemasukan", data: S.map(s => s.inc), backgroundColor: "#10b981" },
+                        { label: "Kebutuhan", data: S.map(s => s.need), backgroundColor: "#f43f5e" },
+                        { label: "Orang tua + tabungan", data: S.map(s => s.par + s.sav), backgroundColor: "#6366f1" }
+                    ] },
+                    options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } }, scales: { y: { ticks: { callback: v => shortRp(v) } } } }
+                });
             }
-            $("spendingHeatmap").innerHTML = h;
+
+            const st = new Date(today + "T00:00:00"); st.setDate(st.getDate() - 83);
+            const stStr = iso(st), dow = [0, 0, 0, 0, 0, 0, 0];
+            state.tx.forEach(x => { if (x.type === "out" && kindOf(x.cat) === "need" && x.date >= stStr && x.date <= today) dow[new Date(x.date + "T00:00:00").getDay()] += x.amount; });
+            const order = [1, 2, 3, 4, 5, 6, 0], names = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+            const avg = dow.map(v => v / 12), mx = Math.max(...avg, 1), top = avg.indexOf(Math.max(...avg));
+            $("anDow").innerHTML = dow.some(v => v > 0) ? order.map(i => `<div class="flex items-center gap-2 text-[11px]"><span class="w-7 shrink-0">${names[i]}</span><div class="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"><div class="h-full ${i === top ? "bg-amber-500" : "bg-indigo-500"}" style="width:${avg[i] / mx * 100}%"></div></div><span class="w-20 text-right font-semibold">${formatRp(avg[i])}</span></div>`).join("") : `<p class="text-xs text-slate-400">Belum cukup data.</p>`;
+
+            const cats = [...new Set([...Object.keys(cur.cat), ...Object.keys(prev.cat)])].sort((a, b) => (cur.cat[b] || 0) - (cur.cat[a] || 0)).slice(0, 6);
+            $("anCatDelta").innerHTML = cats.length ? cats.map(c => {
+                const a = cur.cat[c] || 0, b = prev.cat[c] || 0;
+                const d = b ? Math.round((a - b) / b * 100) : null;
+                return `<div class="flex justify-between gap-2 text-xs"><span class="truncate">${esc(c)}</span><span class="shrink-0"><b>${formatRp(a)}</b> <span class="${d === null ? "text-slate-400" : d > 0 ? "text-rose-500" : "text-emerald-500"} text-[10px]">${d === null ? "baru" : (d > 0 ? "▲ " : "▼ ") + Math.abs(d) + "%"}</span></span></div>`;
+            }).join("") : `<p class="text-xs text-slate-400">Belum ada data.</p>`;
+
+            const curNeed = state.tx.filter(x => x.type === "out" && kindOf(x.cat) === "need" && x.date.slice(0, 7) === mkey(0));
+            const big = curNeed.slice().sort((a, b) => b.amount - a.amount).slice(0, 5);
+            const small = curNeed.filter(x => x.amount <= 20000), smallSum = small.reduce((a, b) => a + b.amount, 0);
+            $("anBig").innerHTML = (big.length ? big.map(x => `<div class="flex justify-between gap-2"><span class="truncate">${esc(x.note || x.cat)} <span class="text-slate-400">· ${x.date.slice(8, 10)}/${x.date.slice(5, 7)}</span></span><b class="shrink-0">${formatRp(x.amount)}</b></div>`).join("") : `<p class="text-slate-400">Belum ada pengeluaran bulan ini.</p>`) + (small.length ? `<p class="pt-2 border-t border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400">Pengeluaran kecil (≤ Rp20.000): <b>${small.length}x</b>, total <b>${formatRp(smallSum)}</b>${cur.need ? " (" + Math.round(smallSum / cur.need * 100) + "% dari kebutuhan)" : ""}.</p>` : "");
+
+            const tips = [];
+            const dsum = dow.reduce((a, b) => a + b, 0);
+            if (dsum > 0) {
+                const overall = dsum / 84, pct = Math.round((avg[top] / overall - 1) * 100);
+                if (pct >= 15) tips.push(`📅 Hari ${["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"][top]} paling boros: rata-rata ${formatRp(avg[top])}, ${pct}% di atas rata-rata harianmu.`);
+                const wk = Math.round((dow[6] + dow[0]) / dsum * 100);
+                tips.push(`🗓️ ${wk}% pengeluaranmu terjadi di akhir pekan (Sabtu–Minggu), padahal hanya 2 dari 7 hari.`);
+            }
+            const ranked = Object.keys(cur.cat).map(c => ({ c, a: cur.cat[c], b: prev.cat[c] || 0 })).filter(r => r.b > 0 && r.a - r.b >= 50000 && r.a / r.b >= 1.2).sort((x, y) => (y.a - y.b) - (x.a - x.b));
+            if (ranked.length) tips.push(`📈 ${ranked[0].c} naik ${Math.round((ranked[0].a / ranked[0].b - 1) * 100)}% dari bulan lalu (+${formatRp(ranked[0].a - ranked[0].b)}). Cek apakah itu memang kebutuhan.`);
+            const topCat = Object.keys(cur.cat).sort((a, b) => cur.cat[b] - cur.cat[a])[0];
+            if (topCat && cur.need > 0) tips.push(`🥇 ${topCat} adalah pengeluaran terbesar: ${Math.round(cur.cat[topCat] / cur.need * 100)}% dari seluruh kebutuhan bulan ini.`);
+            if (small.length >= 5) tips.push(`☕ ${small.length} pengeluaran kecil bulan ini menghabiskan ${formatRp(smallSum)}. Kecil per kali, tapi menumpuk.`);
+            needCats.forEach(c => { const l = state.budgets[c] || 0, u = cur.cat[c] || 0; if (l > 0 && u > l) tips.push(`⚠️ ${c} sudah melewati batas ${formatRp(u - l)}.`); else if (l > 0 && u > l * 0.8 && tips.length < 8) tips.push(`🔔 ${c} sudah ${Math.round(u / l * 100)}% dari batas.`); });
+            if (cur.inc > 0) {
+                const sr = Math.round(cur.sav / cur.inc * 100);
+                tips.push(sr >= 20 ? `💚 Kamu menabung ${sr}% dari pemasukan bulan ini. Pertahankan.` : `💰 Tabungan tercatat ${sr}% dari pemasukan. Patokan umum 10–20%.`);
+            }
+            const logged = new Set(state.tx.filter(x => x.date.slice(0, 7) === mkey(0) && x.date <= today).map(x => x.date)).size;
+            tips.push(`📝 Kamu mencatat transaksi di ${logged} dari ${dNow} hari bulan ini${logged < dNow * 0.7 ? ". Pencatatan yang bolong membuat analisis kurang akurat." : "."}`);
+            $("insightsList").innerHTML = tips.slice(0, 8).map(t => `<li class="p-2 bg-indigo-50/50 dark:bg-slate-800/40 rounded-xl border border-indigo-100 dark:border-slate-800">${esc(t)}</li>`).join("");
         }
 
         // ===== Aksi Cepat, Pengaturan, Rutin =====
@@ -1629,6 +1736,15 @@
         };
 
         $("budgetCategoryList").onchange = (e) => {
+            const kd = e.target.closest("[data-kind]");
+            if (kd) {
+                const kc = state.categories.out[+kd.dataset.kind];
+                if (kc === undefined) return;
+                state.catKind[kc] = kd.value;
+                syncToCloud();
+                renderAll();
+                return;
+            }
             const dl = e.target.closest("[data-daily]");
             if (dl) {
                 const cat = state.categories.out[+dl.dataset.daily];
@@ -1650,7 +1766,7 @@
             renderAll();
         };
 
-        [["planIncome", "income"], ["planParents", "parents"], ["planSavings", "savings"]].forEach(([id, k]) => {
+        [["planIncome", "income"]].forEach(([id, k]) => {
             $(id).addEventListener("input", (e) => {
                 const raw = cleanNumber(e.target.value);
                 e.target.value = raw ? raw.toLocaleString("id-ID") : "";
