@@ -367,11 +367,11 @@
                             <input id="dailyStart" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                         <div>
-                            <label for="dailyPrior" class="block text-[11px] font-semibold text-slate-400 mb-1">Sudah terpakai sebelum itu (Rp)</label>
+                            <label for="dailyPrior" class="block text-[11px] font-semibold text-slate-400 mb-1">Tambahan terpakai sebelum itu (Rp)</label>
                             <input id="dailyPrior" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         </div>
                     </div>
-                    <p class="text-[11px] text-slate-400">Isi jika baru mulai mencatat di tengah periode. Hari sebelum tanggal itu tidak dihitung, jadi jatah hari ini tidak membengkak. Kosongkan untuk periode normal.</p>
+                    <p class="text-[11px] text-slate-400">Isi jika baru mulai mencatat di tengah periode. Pengeluaran yang sudah tercatat sebelum tanggal itu (mis. lewat Rekap Periode Berjalan di Pengaturan) otomatis ikut dihitung, jadi kolom Rp hanya untuk yang belum tercatat. Kosongkan untuk periode normal.</p>
                 </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div>
@@ -444,6 +444,32 @@
                             <button id="btnAddQuick" class="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Tambah Aksi Cepat</button>
                         </div>
                     </div>
+                </div>
+
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Rekap Periode Berjalan</h3>
+                        <p id="rekapInfo" class="text-xs text-slate-400"></p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label for="rekapInc" class="block text-[10px] text-slate-400 mb-0.5">Pemasukan yang sudah masuk (Rp)</label>
+                            <input id="rekapInc" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="rekapIncCat" class="block text-[10px] text-slate-400 mb-0.5">Kategori pemasukan</label>
+                            <select id="rekapIncCat" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Pengeluaran yang sudah terjadi</p>
+                        <div id="rekapList" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                    <div>
+                        <label for="rekapDate" class="block text-[10px] text-slate-400 mb-0.5">Tanggal rekap (awal periode / tanggal gajian)</label>
+                        <input id="rekapDate" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button id="btnRekapSave" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Simpan Rekap</button>
                 </div>
 
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -1372,7 +1398,8 @@
             if (!total) return null;
             const sd = state.daily.start;
             const D0 = (sd && sd > P.start && sd < P.end) ? daysBetween(P.start, sd) : 0;   // hari yang dilewati (belum dicatat)
-            const R = D0 > 0 ? Math.max(total - (state.daily.prior || 0), 0) : total;       // sisa anggaran yang dibagi
+            const recBefore = D0 > 0 ? state.tx.filter(x => x.type === "out" && cats.includes(x.cat) && x.date >= P.start && x.date < sd).reduce((a, x) => a + x.amount, 0) : 0;
+            const R = D0 > 0 ? Math.max(total - (state.daily.prior || 0) - recBefore, 0) : total;       // sisa anggaran yang dibagi
             const Dr = Math.max(D - D0, 1);
             const base = R / Dr, per = {};
             state.tx.forEach(x => {
@@ -1813,6 +1840,7 @@
             `</optgroup>`).join("");
 
         function renderSettings() {
+            renderRekap();
             const t = settingsCatType;
             const on = "py-2 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-indigo-600 shadow-sm";
             const off = "py-2 rounded-lg text-xs font-bold text-slate-500";
@@ -2129,6 +2157,61 @@
             if (pendingAction === "add") $("btnOpenManualModal").click();
             pendingAction = null;
         }
+
+        // ===== Rekap Periode Berjalan =====
+        let rekapDraft = { inc: "", incCat: "", date: "", vals: {} };
+        function renderRekap() {
+            const P = curPeriod();
+            const fmtD = (d) => new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+            $("rekapInfo").textContent = "Periode berjalan: " + fmtD(P.start) + " – " + fmtD(addDays(P.end, -1)) + ". Isi yang sudah terjadi sebelum Anda mulai mencatat lagi, supaya anggaran, pemasukan, dan jatah harian kembali sesuai kenyataan.";
+            if ($("rekapList").contains(document.activeElement) || document.activeElement === $("rekapInc") || document.activeElement === $("rekapDate")) return;
+            $("rekapInc").value = rekapDraft.inc;
+            const incCats = state.categories.in;
+            const cur = (rekapDraft.incCat && incCats.includes(rekapDraft.incCat)) ? rekapDraft.incCat : (incCats.includes("Gaji") ? "Gaji" : incCats[0]);
+            $("rekapIncCat").innerHTML = incCats.map(c => `<option value="${esc(c)}" ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
+            $("rekapDate").value = rekapDraft.date || P.start;
+            $("rekapList").innerHTML = state.categories.out.map((c, i) => `
+                <label class="block">
+                    <span class="block text-[10px] text-slate-400 mb-0.5 truncate">${esc(c)}</span>
+                    <input data-rk="${i}" inputmode="numeric" placeholder="0" value="${esc(rekapDraft.vals[c] || "")}" class="w-full ${INPUT_CLS}">
+                </label>
+            `).join("");
+        }
+
+        $("rekapList").addEventListener("input", (e) => {
+            const el = e.target.closest("[data-rk]");
+            if (!el) return;
+            const c = state.categories.out[+el.dataset.rk];
+            const v = cleanNumber(el.value) || 0;
+            el.value = v ? v.toLocaleString("id-ID") : "";
+            rekapDraft.vals[c] = el.value;
+        });
+        $("rekapInc").addEventListener("input", (e) => {
+            const v = cleanNumber(e.target.value) || 0;
+            e.target.value = v ? v.toLocaleString("id-ID") : "";
+            rekapDraft.inc = e.target.value;
+        });
+        $("rekapIncCat").addEventListener("change", (e) => { rekapDraft.incCat = e.target.value; });
+        $("rekapDate").addEventListener("change", (e) => { rekapDraft.date = e.target.value; });
+
+        $("btnRekapSave").onclick = () => {
+            const date = /^\d{4}-\d{2}-\d{2}$/.test($("rekapDate").value) ? $("rekapDate").value : curPeriod().start;
+            const items = [];
+            const inc = cleanNumber($("rekapInc").value) || 0;
+            if (inc > 0) items.push({ type: "in", cat: $("rekapIncCat").value, amount: inc });
+            let outSum = 0;
+            state.categories.out.forEach(c => {
+                const v = cleanNumber(rekapDraft.vals[c] || "") || 0;
+                if (v > 0) { items.push({ type: "out", cat: c, amount: v }); outSum += v; }
+            });
+            if (!items.length) { toast("Isi minimal satu nominal."); return; }
+            if (!confirm("Tambahkan " + items.length + " transaksi rekap bertanggal " + date + "? Pemasukan " + formatRp(inc) + ", pengeluaran " + formatRp(outSum) + ".")) return;
+            items.forEach((it, i) => state.tx.push({ id: Date.now() + i, amount: it.amount, type: it.type, cat: it.cat, date: date, note: "Rekap sebelum dicatat" }));
+            rekapDraft = { inc: "", incCat: "", date: "", vals: {} };
+            syncToCloud();
+            renderAll();
+            toast("Rekap tersimpan");
+        };
 
         // ===== Cadangan & Pemulihan =====
         let backupItems = [];
