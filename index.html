@@ -361,17 +361,6 @@
                         <p class="text-xs text-slate-400">Total = penjumlahan batas kategori yang kamu centang "Hitung ke batas harian" di bawah. Jatah per hari = total ÷ jumlah hari. Hanya pengeluaran kategori terpilih yang dihitung. Sisa hari ini terbawa ke besok, kelebihan mengurangi jatah besok.</p>
                     </div>
                     <p id="dailyHint" class="text-[11px] text-slate-400"></p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        <div>
-                            <label for="dailyStart" class="block text-[11px] font-semibold text-slate-400 mb-1">Mulai dicatat dari tanggal</label>
-                            <input id="dailyStart" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label for="dailyPrior" class="block text-[11px] font-semibold text-slate-400 mb-1">Tambahan terpakai sebelum itu (Rp)</label>
-                            <input id="dailyPrior" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                    </div>
-                    <p class="text-[11px] text-slate-400">Isi jika baru mulai mencatat di tengah periode. Pengeluaran yang sudah tercatat sebelum tanggal itu (mis. lewat Rekap Periode Berjalan di Pengaturan) otomatis ikut dihitung, jadi kolom Rp hanya untuk yang belum tercatat. Kosongkan untuk periode normal.</p>
                 </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div>
@@ -444,45 +433,6 @@
                             <button id="btnAddQuick" class="w-full py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Tambah Aksi Cepat</button>
                         </div>
                     </div>
-                </div>
-
-                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">Rekap Periode Berjalan</h3>
-                        <p id="rekapInfo" class="text-xs text-slate-400"></p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label for="rekapInc" class="block text-[10px] text-slate-400 mb-0.5">Pemasukan yang sudah masuk (Rp)</label>
-                            <input id="rekapInc" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div>
-                            <label for="rekapIncCat" class="block text-[10px] text-slate-400 mb-0.5">Kategori pemasukan</label>
-                            <select id="rekapIncCat" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
-                        </div>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Pengeluaran yang sudah terjadi</p>
-                        <div id="rekapList" class="grid grid-cols-2 gap-2"></div>
-                    </div>
-                    <div>
-                        <label for="rekapDate" class="block text-[10px] text-slate-400 mb-0.5">Tanggal rekap (awal periode / tanggal gajian)</label>
-                        <input id="rekapDate" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <button id="btnRekapSave" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-semibold shadow-md hover:bg-indigo-700 transition">Simpan Rekap</button>
-                </div>
-
-                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-                    <div>
-                        <h3 class="font-bold text-slate-900 dark:text-white">Cadangan Data</h3>
-                        <p class="text-xs text-slate-400">Cadangan otomatis dibuat tiap hari (7 hari terakhir). Anda juga bisa memulihkan dari file hasil Ekspor JSON.</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button id="btnListBackups" class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Lihat Cadangan</button>
-                        <button id="btnImportFile" class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Impor dari File</button>
-                        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
-                    </div>
-                    <div id="backupList" class="space-y-2"></div>
                 </div>
 
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
@@ -677,15 +627,6 @@
         </div>
     </div>
 
-    <!-- GERBANG MEMUAT DATA -->
-    <div id="syncGate" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-sm text-center space-y-3 shadow-2xl">
-            <p id="syncGateTitle" class="font-bold text-slate-900 dark:text-white">Memuat data...</p>
-            <p id="syncGateText" class="text-xs text-slate-500 dark:text-slate-400">Mohon tunggu sebentar.</p>
-            <button id="syncGateRetry" class="hidden px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Coba lagi</button>
-        </div>
-    </div>
-
     <!-- FIREBASE & APPLICATION LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
@@ -697,16 +638,11 @@
             signOut,
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
-        import {
-            getFirestore,
-            doc,
-            getDoc,
-            setDoc,
-            deleteDoc,
-            onSnapshot,
-            collection,
-            getDocs,
-            runTransaction
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            onSnapshot 
         } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 
         // Konfigurasi Firebase (project: app-catat-keuangan)
@@ -755,11 +691,6 @@
 
         let currentUser = null;
         let unsubscribeStore = null;
-        let cloudReady = false;      // true hanya setelah data dari server terbaca dengan pasti
-        let cloudBaseTs = 0;         // waktu tulis dokumen cloud yang terakhir kita pegang
-        let dirty = false;           // ada perubahan lokal yang belum tersimpan
-        let backupChecked = false;
-        let saveChain = Promise.resolve();
         let editingTxId = null;
         let currentFormType = "out";
         let trendChart = null;
@@ -773,8 +704,6 @@
             if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
             if (!s.daily || typeof s.daily !== "object") s.daily = { cats: null };
             if (!Array.isArray(s.daily.cats)) s.daily.cats = null;
-            s.daily.start = /^\d{4}-\d{2}-\d{2}$/.test(s.daily.start || "") ? s.daily.start : "";
-            s.daily.prior = Math.max(Number(s.daily.prior) || 0, 0);
             if (!s.plan || typeof s.plan !== "object") s.plan = {};
             ["income", "parents", "savings"].forEach(k => { s.plan[k] = Number(s.plan[k]) || 0; });
             if (!s.catKind || typeof s.catKind !== "object") s.catKind = {};
@@ -831,131 +760,40 @@
             return doc(db, 'users', uid, 'data', 'keuangan');
         }
 
-        // ===== SYNC START =====
-        let gateTimer = null;
-        function updateGate() {
-            const show = !!currentUser && !cloudReady;
-            $("syncGate").classList.toggle("hidden", !show);
-            clearTimeout(gateTimer);
-            $("syncGateRetry").classList.add("hidden");
-            $("syncGateTitle").textContent = "Memuat data...";
-            $("syncGateText").textContent = "Mohon tunggu sebentar.";
-            if (show) {
-                gateTimer = setTimeout(() => {
-                    $("syncGateTitle").textContent = "Belum tersambung ke server";
-                    $("syncGateText").textContent = "Aplikasi tidak menyimpan apa pun sampai data berhasil dimuat, supaya data Anda tidak tertimpa. Periksa internet lalu coba lagi.";
-                    $("syncGateRetry").classList.remove("hidden");
-                }, 8000);
-            }
-        }
-        $("syncGateRetry").onclick = () => location.reload();
-
-        function syncToCloud() {
-            if (!currentUser) return Promise.resolve();
-            if (!cloudReady) { toast("Data belum selesai dimuat. Perubahan tidak disimpan."); return Promise.resolve(); }
-            state.updatedAt = Date.now();
-            dirty = true;
-            saveChain = saveChain.then(doSave).catch(() => {});
-            return saveChain;
-        }
-
-        async function reloadFromCloud() {
-            const snap = await getDoc(getUserDocRef(currentUser.uid));
-            if (snap.exists() && snap.data().data) {
-                state = normalizeState(JSON.parse(snap.data().data));
-                cloudBaseTs = Number(snap.data().ts) || state.updatedAt || 0;
-                dirty = false;
-                renderAll();
-            }
-        }
-
-        async function doSave() {
-            if (!currentUser || !cloudReady || !dirty) return;
-            const ref = getUserDocRef(currentUser.uid);
-            const payload = { data: JSON.stringify(state), ts: state.updatedAt };
+        async function syncToCloud() {
+            if (!currentUser) return;
             try {
-                await runTransaction(db, async (t) => {
-                    const snap = await t.get(ref);
-                    const cloudTs = snap.exists() ? (Number(snap.data().ts) || 0) : 0;
-                    if (cloudTs > cloudBaseTs) throw new Error("STALE");
-                    t.set(ref, payload);
-                });
-                cloudBaseTs = payload.ts;
-                if (state.updatedAt === payload.ts) dirty = false;
+                state.updatedAt = Date.now();
+                const docRef = getUserDocRef(currentUser.uid);
+                await setDoc(docRef, { data: JSON.stringify(state), ts: state.updatedAt }, { merge: true });
             } catch (err) {
-                if (err && err.message === "STALE") {
-                    try { await reloadFromCloud(); } catch (e) { console.error(e); }
-                    toast("Data di perangkat lain lebih baru. Dimuat ulang, ulangi perubahan terakhir.");
-                } else {
-                    console.error("Firestore Save Error:", err);
-                    toast("Gagal menyimpan. Periksa koneksi internet.");
-                }
+                console.error("Firestore Save Error:", err);
             }
-        }
-        window.addEventListener("online", () => { if (dirty) syncToCloud(); });
-
-        async function maybeDailyBackup(rawData) {
-            if (!currentUser || backupChecked) return;
-            backupChecked = true;
-            try {
-                const col = collection(db, 'users', currentUser.uid, 'backups');
-                const today = localToday();
-                const ref = doc(col, today);
-                const ex = await getDoc(ref);
-                if (!ex.exists()) await setDoc(ref, { data: rawData, ts: Date.now(), date: today });
-                const all = await getDocs(col);
-                const ids = all.docs.map(d => d.id).sort().reverse();
-                await Promise.all(ids.slice(7).map(id => deleteDoc(doc(col, id))));
-            } catch (e) { console.error("Backup error:", e); }
         }
 
         function bindCloudListener(uid) {
             if (unsubscribeStore) unsubscribeStore();
-            cloudReady = false; cloudBaseTs = 0; dirty = false; backupChecked = false;
-            updateGate();
             const docRef = getUserDocRef(uid);
-
+            
             unsubscribeStore = onSnapshot(docRef, (snap) => {
-                if (!currentUser || currentUser.uid !== uid) return;
                 if (snap.exists()) {
                     try {
                         const raw = snap.data();
                         if (raw && raw.data) {
                             const incoming = normalizeState(JSON.parse(raw.data));
-                            if (cloudReady && (incoming.updatedAt || 0) < (state.updatedAt || 0)) return; // jangan menimpa perubahan lokal yang lebih baru
+                            if ((incoming.updatedAt || 0) < (state.updatedAt || 0)) return; // jangan menimpa data lokal yang lebih baru
                             state = incoming;
-                            cloudBaseTs = Number(raw.ts) || incoming.updatedAt || 0;
-                            cloudReady = true;
-                            dirty = false;
-                            updateGate();
-                            renderAll();
-                            maybeDailyBackup(raw.data);
-                        } else {
-                            cloudReady = true;
-                            updateGate();
                             renderAll();
                         }
                     } catch (e) {
                         console.error("Cloud data parsing error", e);
                     }
-                } else if (!snap.metadata.fromCache) {
-                    // dokumen memang belum ada di server (akun baru)
-                    cloudReady = true;
-                    updateGate();
+                } else {
                     syncToCloud();
                     renderAll();
                 }
-                // snapshot "tidak ada" dari cache saat offline: diabaikan, tidak menulis apa pun
-            }, (err) => {
-                console.error("Snapshot error:", err);
-                clearTimeout(gateTimer);
-                $("syncGate").classList.remove("hidden");
-                $("syncGateTitle").textContent = "Gagal memuat data";
-                $("syncGateText").textContent = "Kode: " + (err && err.code ? err.code : "tidak diketahui") + ". Aplikasi tidak menyimpan apa pun agar data tidak tertimpa.";
-                $("syncGateRetry").classList.remove("hidden");
-            });
+            }, (err) => console.error("Snapshot error:", err));
         }
-        // ===== SYNC END =====
 
         // Firebase Auth Initialization
         onAuthStateChanged(auth, (user) => {
@@ -969,8 +807,6 @@
                 bindCloudListener(user.uid);
             } else {
                 if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
-                cloudReady = false; cloudBaseTs = 0; dirty = false;
-                updateGate();
                 state = clone(INITIAL_STATE);
                 $("authPass").value = "";
                 $("authError").classList.add("hidden");
@@ -1396,37 +1232,29 @@
             const cats = dailyCats().filter(c => (state.budgets[c] || 0) > 0);
             const total = cats.reduce((a, c) => a + state.budgets[c], 0);
             if (!total) return null;
-            const sd = state.daily.start;
-            const D0 = (sd && sd > P.start && sd < P.end) ? daysBetween(P.start, sd) : 0;   // hari yang dilewati (belum dicatat)
-            const recBefore = D0 > 0 ? state.tx.filter(x => x.type === "out" && cats.includes(x.cat) && x.date >= P.start && x.date < sd).reduce((a, x) => a + x.amount, 0) : 0;
-            const R = D0 > 0 ? Math.max(total - (state.daily.prior || 0) - recBefore, 0) : total;       // sisa anggaran yang dibagi
-            const Dr = Math.max(D - D0, 1);
-            const base = R / Dr, per = {};
+            const base = total / D, per = {};
             state.tx.forEach(x => {
                 if (x.type === "out" && cats.includes(x.cat) && x.date >= P.start && x.date < P.end) { const d = daysBetween(P.start, x.date) + 1; per[d] = (per[d] || 0) + x.amount; }
             });
             let cum = 0;
             const days = [];
             for (let d = 1; d <= D; d++) {
-                if (d <= D0) { days.push({ d, spent: per[d] || 0, carry: 0, avail: base, left: 0, over: false }); continue; }
-                const carry = base * (d - D0 - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
+                const carry = base * (d - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
                 cum += per[d] || 0;
-                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * (d - D0) - cum, over: (per[d] || 0) > base + 0.5 });
+                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * d - cum, over: (per[d] || 0) > base + 0.5 });
             }
             const t = days[dNow - 1];
             let streak = 0;
-            for (let i = dNow - 1; i >= D0 && days[i].left >= 0; i--) streak++;
+            for (let i = dNow - 1; i >= 0 && days[i].left >= 0; i--) streak++;
             let overDays = 0, streakBase = 0;
-            for (let i = D0; i < dNow; i++) if (days[i].over) overDays++;
-            for (let i = dNow - 1; i >= D0 && !days[i].over; i--) streakBase++;
-            return { overDays, streakBase, total: R, cats, D, D0, Dr, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
+            for (let i = 0; i < dNow; i++) if (days[i].over) overDays++;
+            for (let i = dNow - 1; i >= 0 && !days[i].over; i--) streakBase++;
+            return { overDays, streakBase, total, cats, D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
         }
 
         function renderDaily() {
             const s = dailyStats();
-            if (document.activeElement !== $("dailyStart")) $("dailyStart").value = state.daily.start || "";
-            if (document.activeElement !== $("dailyPrior")) $("dailyPrior").value = state.daily.prior ? state.daily.prior.toLocaleString("id-ID") : "";
-            $("dailyHint").textContent = s ? `${s.D0 > 0 ? "Sisa anggaran" : "Total"} ${formatRp(s.total)} dari ${s.cats.length} kategori (${s.cats.join(", ")}) · jatah dasar ${formatRp(s.base)} per hari untuk ${s.Dr} hari.` : "Isi batas kategori lalu centang yang masuk batas harian.";
+            $("dailyHint").textContent = s ? `Total ${formatRp(s.total)} dari ${s.cats.length} kategori (${s.cats.join(", ")}) · jatah dasar ${formatRp(s.base)} per hari untuk ${s.D} hari.` : "Isi batas kategori lalu centang yang masuk batas harian.";
             const card = $("dailyCard");
             if (!s) {
                 card.innerHTML = `<div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3><p class="text-xs text-slate-400">Isi batas kategori di menu Anggaran dan centang yang masuk hitungan agar jatah harian terhitung.</p></div><button id="btnDailySetup" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shrink-0">Atur</button></div>`;
@@ -1436,11 +1264,11 @@
             const t = s.t, over = t.left < 0;
             const baseOver = t.spent > s.base + 0.5;
             const bpct = Math.min(t.spent / s.base * 100, 100);
-            const strip2 = s.days.map(d => `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.over ? "melewati jatah dasar" : "dalam jatah dasar")}" class="h-2.5 flex-1 rounded-sm ${(d.d > s.dNow || d.d <= s.D0) ? "bg-slate-200 dark:bg-slate-800" : (d.over ? "bg-amber-500" : "bg-emerald-500")} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`).join("");
+            const strip2 = s.days.map(d => `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.over ? "melewati jatah dasar" : "dalam jatah dasar")}" class="h-2.5 flex-1 rounded-sm ${d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.over ? "bg-amber-500" : "bg-emerald-500")} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`).join("");
             const pct = t.avail > 0 ? Math.min(t.spent / t.avail * 100, 100) : (t.spent > 0 ? 100 : 0);
             const sign = (v) => (v >= 0 ? "+" : "−") + formatRp(Math.abs(v));
             const strip = s.days.map(d => {
-                const cls = (d.d > s.dNow || d.d <= s.D0) ? "bg-slate-200 dark:bg-slate-800" : (d.left >= 0 ? "bg-emerald-500" : "bg-rose-500");
+                const cls = d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.left >= 0 ? "bg-emerald-500" : "bg-rose-500");
                 return `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.left >= 0 ? "dalam batas" : "melebihi")}" class="h-2.5 flex-1 rounded-sm ${cls} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`;
             }).join("");
             card.innerHTML = `
@@ -1840,7 +1668,6 @@
             `</optgroup>`).join("");
 
         function renderSettings() {
-            renderRekap();
             const t = settingsCatType;
             const on = "py-2 rounded-lg text-xs font-bold bg-white dark:bg-slate-700 text-indigo-600 shadow-sm";
             const off = "py-2 rounded-lg text-xs font-bold text-slate-500";
@@ -1999,9 +1826,6 @@
             renderAll();
         };
 
-        $("dailyStart").addEventListener("change", (e) => { state.daily.start = /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : ""; syncToCloud(); renderAll(); });
-        $("dailyPrior").addEventListener("input", (e) => { const v = cleanNumber(e.target.value); e.target.value = v ? v.toLocaleString("id-ID") : ""; });
-        $("dailyPrior").addEventListener("change", (e) => { state.daily.prior = cleanNumber(e.target.value) || 0; syncToCloud(); renderAll(); });
         $("payMode").addEventListener("change", (e) => { state.pay.mode = e.target.value; syncToCloud(); renderAll(); });
         $("payDay").addEventListener("change", (e) => { state.pay.day = Math.min(Math.max(parseInt(e.target.value, 10) || 25, 1), 31); syncToCloud(); renderAll(); });
 
@@ -2157,117 +1981,6 @@
             if (pendingAction === "add") $("btnOpenManualModal").click();
             pendingAction = null;
         }
-
-        // ===== Rekap Periode Berjalan =====
-        let rekapDraft = { inc: "", incCat: "", date: "", vals: {} };
-        function renderRekap() {
-            const P = curPeriod();
-            const fmtD = (d) => new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-            $("rekapInfo").textContent = "Periode berjalan: " + fmtD(P.start) + " – " + fmtD(addDays(P.end, -1)) + ". Isi yang sudah terjadi sebelum Anda mulai mencatat lagi, supaya anggaran, pemasukan, dan jatah harian kembali sesuai kenyataan.";
-            if ($("rekapList").contains(document.activeElement) || document.activeElement === $("rekapInc") || document.activeElement === $("rekapDate")) return;
-            $("rekapInc").value = rekapDraft.inc;
-            const incCats = state.categories.in;
-            const cur = (rekapDraft.incCat && incCats.includes(rekapDraft.incCat)) ? rekapDraft.incCat : (incCats.includes("Gaji") ? "Gaji" : incCats[0]);
-            $("rekapIncCat").innerHTML = incCats.map(c => `<option value="${esc(c)}" ${c === cur ? "selected" : ""}>${esc(c)}</option>`).join("");
-            $("rekapDate").value = rekapDraft.date || P.start;
-            $("rekapList").innerHTML = state.categories.out.map((c, i) => `
-                <label class="block">
-                    <span class="block text-[10px] text-slate-400 mb-0.5 truncate">${esc(c)}</span>
-                    <input data-rk="${i}" inputmode="numeric" placeholder="0" value="${esc(rekapDraft.vals[c] || "")}" class="w-full ${INPUT_CLS}">
-                </label>
-            `).join("");
-        }
-
-        $("rekapList").addEventListener("input", (e) => {
-            const el = e.target.closest("[data-rk]");
-            if (!el) return;
-            const c = state.categories.out[+el.dataset.rk];
-            const v = cleanNumber(el.value) || 0;
-            el.value = v ? v.toLocaleString("id-ID") : "";
-            rekapDraft.vals[c] = el.value;
-        });
-        $("rekapInc").addEventListener("input", (e) => {
-            const v = cleanNumber(e.target.value) || 0;
-            e.target.value = v ? v.toLocaleString("id-ID") : "";
-            rekapDraft.inc = e.target.value;
-        });
-        $("rekapIncCat").addEventListener("change", (e) => { rekapDraft.incCat = e.target.value; });
-        $("rekapDate").addEventListener("change", (e) => { rekapDraft.date = e.target.value; });
-
-        $("btnRekapSave").onclick = () => {
-            const date = /^\d{4}-\d{2}-\d{2}$/.test($("rekapDate").value) ? $("rekapDate").value : curPeriod().start;
-            const items = [];
-            const inc = cleanNumber($("rekapInc").value) || 0;
-            if (inc > 0) items.push({ type: "in", cat: $("rekapIncCat").value, amount: inc });
-            let outSum = 0;
-            state.categories.out.forEach(c => {
-                const v = cleanNumber(rekapDraft.vals[c] || "") || 0;
-                if (v > 0) { items.push({ type: "out", cat: c, amount: v }); outSum += v; }
-            });
-            if (!items.length) { toast("Isi minimal satu nominal."); return; }
-            if (!confirm("Tambahkan " + items.length + " transaksi rekap bertanggal " + date + "? Pemasukan " + formatRp(inc) + ", pengeluaran " + formatRp(outSum) + ".")) return;
-            items.forEach((it, i) => state.tx.push({ id: Date.now() + i, amount: it.amount, type: it.type, cat: it.cat, date: date, note: "Rekap sebelum dicatat" }));
-            rekapDraft = { inc: "", incCat: "", date: "", vals: {} };
-            syncToCloud();
-            renderAll();
-            toast("Rekap tersimpan");
-        };
-
-        // ===== Cadangan & Pemulihan =====
-        let backupItems = [];
-        function applyRestore(obj, label) {
-            const next = normalizeState(JSON.parse(JSON.stringify(obj)));
-            const msg = "Ganti data saat ini (" + state.tx.length + " transaksi) dengan " + label + " (" + next.tx.length + " transaksi)? Tindakan ini menimpa data saat ini.";
-            if (!confirm(msg)) return;
-            state = next;
-            syncToCloud();
-            renderAll();
-            toast("Data dipulihkan");
-        }
-
-        $("btnListBackups").onclick = async () => {
-            if (!currentUser || !cloudReady) { toast("Data belum selesai dimuat."); return; }
-            try {
-                const snap = await getDocs(collection(db, 'users', currentUser.uid, 'backups'));
-                backupItems = snap.docs.map(d => {
-                    const v = d.data();
-                    let n = 0;
-                    try { n = (JSON.parse(v.data).tx || []).length; } catch (e) { /* abaikan */ }
-                    return { id: d.id, n: n, data: v.data };
-                }).sort((a, b) => b.id.localeCompare(a.id));
-                $("backupList").innerHTML = backupItems.length ? backupItems.map((b, i) => `
-                    <div class="flex items-center justify-between gap-2 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
-                        <div class="min-w-0"><p class="font-semibold">${esc(b.id)}</p><p class="text-[10px] text-slate-400">${b.n} transaksi</p></div>
-                        <button data-restore="${i}" class="shrink-0 px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold">Pulihkan</button>
-                    </div>
-                `).join("") : `<p class="text-xs text-slate-400">Belum ada cadangan. Cadangan pertama dibuat otomatis saat aplikasi dibuka.</p>`;
-            } catch (e) {
-                console.error(e);
-                toast("Gagal memuat daftar cadangan.");
-            }
-        };
-
-        $("backupList").onclick = (e) => {
-            const b = e.target.closest("[data-restore]");
-            if (!b) return;
-            const item = backupItems[+b.dataset.restore];
-            if (!item) return;
-            try { applyRestore(JSON.parse(item.data), "cadangan " + item.id); } catch (err) { toast("Cadangan tidak bisa dibaca."); }
-        };
-
-        $("btnImportFile").onclick = () => $("importFile").click();
-        $("importFile").onchange = async (e) => {
-            const f = e.target.files[0];
-            e.target.value = "";
-            if (!f) return;
-            try {
-                const obj = JSON.parse(await f.text());
-                if (!obj || !Array.isArray(obj.tx)) throw new Error("format");
-                applyRestore(obj, "file " + f.name);
-            } catch (err) {
-                toast("File tidak valid.");
-            }
-        };
 
         // Export Actions
         $("btnExportCSV").onclick = () => {
