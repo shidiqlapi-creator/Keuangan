@@ -436,6 +436,19 @@
                 </div>
 
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+                    <div>
+                        <h3 class="font-bold text-slate-900 dark:text-white">Cadangan Data</h3>
+                        <p class="text-xs text-slate-400">Cadangan otomatis dibuat tiap hari (7 hari terakhir). Anda juga bisa memulihkan dari file hasil Ekspor JSON.</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btnListBackups" class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Lihat Cadangan</button>
+                        <button id="btnImportFile" class="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition">Impor dari File</button>
+                        <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+                    </div>
+                    <div id="backupList" class="space-y-2"></div>
+                </div>
+
+                <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div class="flex items-center justify-between gap-3">
                         <div>
                             <h3 class="font-bold text-slate-900 dark:text-white">Mode Widget</h3>
@@ -627,6 +640,15 @@
         </div>
     </div>
 
+    <!-- GERBANG MEMUAT DATA -->
+    <div id="syncGate" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-6 bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-sm text-center space-y-3 shadow-2xl">
+            <p id="syncGateTitle" class="font-bold text-slate-900 dark:text-white">Memuat data...</p>
+            <p id="syncGateText" class="text-xs text-slate-500 dark:text-slate-400">Mohon tunggu sebentar.</p>
+            <button id="syncGateRetry" class="hidden px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold">Coba lagi</button>
+        </div>
+    </div>
+
     <!-- FIREBASE & APPLICATION LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
@@ -638,11 +660,16 @@
             signOut,
             onAuthStateChanged 
         } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
-        import { 
-            getFirestore, 
-            doc, 
-            setDoc, 
-            onSnapshot 
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            setDoc,
+            deleteDoc,
+            onSnapshot,
+            collection,
+            getDocs,
+            runTransaction
         } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-firestore.js";
 
         // Konfigurasi Firebase (project: app-catat-keuangan)
@@ -691,6 +718,11 @@
 
         let currentUser = null;
         let unsubscribeStore = null;
+        let cloudReady = false;      // true hanya setelah data dari server terbaca dengan pasti
+        let cloudBaseTs = 0;         // waktu tulis dokumen cloud yang terakhir kita pegang
+        let dirty = false;           // ada perubahan lokal yang belum tersimpan
+        let backupChecked = false;
+        let saveChain = Promise.resolve();
         let editingTxId = null;
         let currentFormType = "out";
         let trendChart = null;
@@ -760,40 +792,131 @@
             return doc(db, 'users', uid, 'data', 'keuangan');
         }
 
-        async function syncToCloud() {
-            if (!currentUser) return;
-            try {
-                state.updatedAt = Date.now();
-                const docRef = getUserDocRef(currentUser.uid);
-                await setDoc(docRef, { data: JSON.stringify(state), ts: state.updatedAt }, { merge: true });
-            } catch (err) {
-                console.error("Firestore Save Error:", err);
+        // ===== SYNC START =====
+        let gateTimer = null;
+        function updateGate() {
+            const show = !!currentUser && !cloudReady;
+            $("syncGate").classList.toggle("hidden", !show);
+            clearTimeout(gateTimer);
+            $("syncGateRetry").classList.add("hidden");
+            $("syncGateTitle").textContent = "Memuat data...";
+            $("syncGateText").textContent = "Mohon tunggu sebentar.";
+            if (show) {
+                gateTimer = setTimeout(() => {
+                    $("syncGateTitle").textContent = "Belum tersambung ke server";
+                    $("syncGateText").textContent = "Aplikasi tidak menyimpan apa pun sampai data berhasil dimuat, supaya data Anda tidak tertimpa. Periksa internet lalu coba lagi.";
+                    $("syncGateRetry").classList.remove("hidden");
+                }, 8000);
             }
+        }
+        $("syncGateRetry").onclick = () => location.reload();
+
+        function syncToCloud() {
+            if (!currentUser) return Promise.resolve();
+            if (!cloudReady) { toast("Data belum selesai dimuat. Perubahan tidak disimpan."); return Promise.resolve(); }
+            state.updatedAt = Date.now();
+            dirty = true;
+            saveChain = saveChain.then(doSave).catch(() => {});
+            return saveChain;
+        }
+
+        async function reloadFromCloud() {
+            const snap = await getDoc(getUserDocRef(currentUser.uid));
+            if (snap.exists() && snap.data().data) {
+                state = normalizeState(JSON.parse(snap.data().data));
+                cloudBaseTs = Number(snap.data().ts) || state.updatedAt || 0;
+                dirty = false;
+                renderAll();
+            }
+        }
+
+        async function doSave() {
+            if (!currentUser || !cloudReady || !dirty) return;
+            const ref = getUserDocRef(currentUser.uid);
+            const payload = { data: JSON.stringify(state), ts: state.updatedAt };
+            try {
+                await runTransaction(db, async (t) => {
+                    const snap = await t.get(ref);
+                    const cloudTs = snap.exists() ? (Number(snap.data().ts) || 0) : 0;
+                    if (cloudTs > cloudBaseTs) throw new Error("STALE");
+                    t.set(ref, payload);
+                });
+                cloudBaseTs = payload.ts;
+                if (state.updatedAt === payload.ts) dirty = false;
+            } catch (err) {
+                if (err && err.message === "STALE") {
+                    try { await reloadFromCloud(); } catch (e) { console.error(e); }
+                    toast("Data di perangkat lain lebih baru. Dimuat ulang, ulangi perubahan terakhir.");
+                } else {
+                    console.error("Firestore Save Error:", err);
+                    toast("Gagal menyimpan. Periksa koneksi internet.");
+                }
+            }
+        }
+        window.addEventListener("online", () => { if (dirty) syncToCloud(); });
+
+        async function maybeDailyBackup(rawData) {
+            if (!currentUser || backupChecked) return;
+            backupChecked = true;
+            try {
+                const col = collection(db, 'users', currentUser.uid, 'backups');
+                const today = localToday();
+                const ref = doc(col, today);
+                const ex = await getDoc(ref);
+                if (!ex.exists()) await setDoc(ref, { data: rawData, ts: Date.now(), date: today });
+                const all = await getDocs(col);
+                const ids = all.docs.map(d => d.id).sort().reverse();
+                await Promise.all(ids.slice(7).map(id => deleteDoc(doc(col, id))));
+            } catch (e) { console.error("Backup error:", e); }
         }
 
         function bindCloudListener(uid) {
             if (unsubscribeStore) unsubscribeStore();
+            cloudReady = false; cloudBaseTs = 0; dirty = false; backupChecked = false;
+            updateGate();
             const docRef = getUserDocRef(uid);
-            
+
             unsubscribeStore = onSnapshot(docRef, (snap) => {
+                if (!currentUser || currentUser.uid !== uid) return;
                 if (snap.exists()) {
                     try {
                         const raw = snap.data();
                         if (raw && raw.data) {
                             const incoming = normalizeState(JSON.parse(raw.data));
-                            if ((incoming.updatedAt || 0) < (state.updatedAt || 0)) return; // jangan menimpa data lokal yang lebih baru
+                            if (cloudReady && (incoming.updatedAt || 0) < (state.updatedAt || 0)) return; // jangan menimpa perubahan lokal yang lebih baru
                             state = incoming;
+                            cloudBaseTs = Number(raw.ts) || incoming.updatedAt || 0;
+                            cloudReady = true;
+                            dirty = false;
+                            updateGate();
+                            renderAll();
+                            maybeDailyBackup(raw.data);
+                        } else {
+                            cloudReady = true;
+                            updateGate();
                             renderAll();
                         }
                     } catch (e) {
                         console.error("Cloud data parsing error", e);
                     }
-                } else {
+                } else if (!snap.metadata.fromCache) {
+                    // dokumen memang belum ada di server (akun baru)
+                    cloudReady = true;
+                    updateGate();
                     syncToCloud();
                     renderAll();
                 }
-            }, (err) => console.error("Snapshot error:", err));
+                // snapshot "tidak ada" dari cache saat offline: diabaikan, tidak menulis apa pun
+            }, (err) => {
+                console.error("Snapshot error:", err);
+                clearTimeout(gateTimer);
+                $("syncGate").classList.remove("hidden");
+                $("syncGateTitle").textContent = "Gagal memuat data";
+                $("syncGateText").textContent = "Kode: " + (err && err.code ? err.code : "tidak diketahui") + ". Aplikasi tidak menyimpan apa pun agar data tidak tertimpa.";
+                $("syncGateRetry").classList.remove("hidden");
+            });
         }
+        // ===== SYNC END =====
 
         // Firebase Auth Initialization
         onAuthStateChanged(auth, (user) => {
@@ -807,6 +930,8 @@
                 bindCloudListener(user.uid);
             } else {
                 if (unsubscribeStore) { unsubscribeStore(); unsubscribeStore = null; }
+                cloudReady = false; cloudBaseTs = 0; dirty = false;
+                updateGate();
                 state = clone(INITIAL_STATE);
                 $("authPass").value = "";
                 $("authError").classList.add("hidden");
@@ -1981,6 +2106,62 @@
             if (pendingAction === "add") $("btnOpenManualModal").click();
             pendingAction = null;
         }
+
+        // ===== Cadangan & Pemulihan =====
+        let backupItems = [];
+        function applyRestore(obj, label) {
+            const next = normalizeState(JSON.parse(JSON.stringify(obj)));
+            const msg = "Ganti data saat ini (" + state.tx.length + " transaksi) dengan " + label + " (" + next.tx.length + " transaksi)? Tindakan ini menimpa data saat ini.";
+            if (!confirm(msg)) return;
+            state = next;
+            syncToCloud();
+            renderAll();
+            toast("Data dipulihkan");
+        }
+
+        $("btnListBackups").onclick = async () => {
+            if (!currentUser || !cloudReady) { toast("Data belum selesai dimuat."); return; }
+            try {
+                const snap = await getDocs(collection(db, 'users', currentUser.uid, 'backups'));
+                backupItems = snap.docs.map(d => {
+                    const v = d.data();
+                    let n = 0;
+                    try { n = (JSON.parse(v.data).tx || []).length; } catch (e) { /* abaikan */ }
+                    return { id: d.id, n: n, data: v.data };
+                }).sort((a, b) => b.id.localeCompare(a.id));
+                $("backupList").innerHTML = backupItems.length ? backupItems.map((b, i) => `
+                    <div class="flex items-center justify-between gap-2 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
+                        <div class="min-w-0"><p class="font-semibold">${esc(b.id)}</p><p class="text-[10px] text-slate-400">${b.n} transaksi</p></div>
+                        <button data-restore="${i}" class="shrink-0 px-3 py-1.5 bg-indigo-600 text-white rounded-lg font-semibold">Pulihkan</button>
+                    </div>
+                `).join("") : `<p class="text-xs text-slate-400">Belum ada cadangan. Cadangan pertama dibuat otomatis saat aplikasi dibuka.</p>`;
+            } catch (e) {
+                console.error(e);
+                toast("Gagal memuat daftar cadangan.");
+            }
+        };
+
+        $("backupList").onclick = (e) => {
+            const b = e.target.closest("[data-restore]");
+            if (!b) return;
+            const item = backupItems[+b.dataset.restore];
+            if (!item) return;
+            try { applyRestore(JSON.parse(item.data), "cadangan " + item.id); } catch (err) { toast("Cadangan tidak bisa dibaca."); }
+        };
+
+        $("btnImportFile").onclick = () => $("importFile").click();
+        $("importFile").onchange = async (e) => {
+            const f = e.target.files[0];
+            e.target.value = "";
+            if (!f) return;
+            try {
+                const obj = JSON.parse(await f.text());
+                if (!obj || !Array.isArray(obj.tx)) throw new Error("format");
+                applyRestore(obj, "file " + f.name);
+            } catch (err) {
+                toast("File tidak valid.");
+            }
+        };
 
         // Export Actions
         $("btnExportCSV").onclick = () => {
