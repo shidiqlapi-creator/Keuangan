@@ -361,6 +361,17 @@
                         <p class="text-xs text-slate-400">Total = penjumlahan batas kategori yang kamu centang "Hitung ke batas harian" di bawah. Jatah per hari = total ÷ jumlah hari. Hanya pengeluaran kategori terpilih yang dihitung. Sisa hari ini terbawa ke besok, kelebihan mengurangi jatah besok.</p>
                     </div>
                     <p id="dailyHint" class="text-[11px] text-slate-400"></p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                        <div>
+                            <label for="dailyStart" class="block text-[11px] font-semibold text-slate-400 mb-1">Mulai dicatat dari tanggal</label>
+                            <input id="dailyStart" type="date" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="dailyPrior" class="block text-[11px] font-semibold text-slate-400 mb-1">Sudah terpakai sebelum itu (Rp)</label>
+                            <input id="dailyPrior" inputmode="numeric" placeholder="0" class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Isi jika baru mulai mencatat di tengah periode. Hari sebelum tanggal itu tidak dihitung, jadi jatah hari ini tidak membengkak. Kosongkan untuk periode normal.</p>
                 </div>
                 <div class="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
                     <div>
@@ -736,6 +747,8 @@
             if (!s.budgets || typeof s.budgets !== "object") s.budgets = {};
             if (!s.daily || typeof s.daily !== "object") s.daily = { cats: null };
             if (!Array.isArray(s.daily.cats)) s.daily.cats = null;
+            s.daily.start = /^\d{4}-\d{2}-\d{2}$/.test(s.daily.start || "") ? s.daily.start : "";
+            s.daily.prior = Math.max(Number(s.daily.prior) || 0, 0);
             if (!s.plan || typeof s.plan !== "object") s.plan = {};
             ["income", "parents", "savings"].forEach(k => { s.plan[k] = Number(s.plan[k]) || 0; });
             if (!s.catKind || typeof s.catKind !== "object") s.catKind = {};
@@ -1357,29 +1370,36 @@
             const cats = dailyCats().filter(c => (state.budgets[c] || 0) > 0);
             const total = cats.reduce((a, c) => a + state.budgets[c], 0);
             if (!total) return null;
-            const base = total / D, per = {};
+            const sd = state.daily.start;
+            const D0 = (sd && sd > P.start && sd < P.end) ? daysBetween(P.start, sd) : 0;   // hari yang dilewati (belum dicatat)
+            const R = D0 > 0 ? Math.max(total - (state.daily.prior || 0), 0) : total;       // sisa anggaran yang dibagi
+            const Dr = Math.max(D - D0, 1);
+            const base = R / Dr, per = {};
             state.tx.forEach(x => {
                 if (x.type === "out" && cats.includes(x.cat) && x.date >= P.start && x.date < P.end) { const d = daysBetween(P.start, x.date) + 1; per[d] = (per[d] || 0) + x.amount; }
             });
             let cum = 0;
             const days = [];
             for (let d = 1; d <= D; d++) {
-                const carry = base * (d - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
+                if (d <= D0) { days.push({ d, spent: per[d] || 0, carry: 0, avail: base, left: 0, over: false }); continue; }
+                const carry = base * (d - D0 - 1) - cum;      // sisa (+) atau kelebihan (-) dari hari-hari sebelumnya
                 cum += per[d] || 0;
-                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * d - cum, over: (per[d] || 0) > base + 0.5 });
+                days.push({ d, spent: per[d] || 0, carry, avail: base + carry, left: base * (d - D0) - cum, over: (per[d] || 0) > base + 0.5 });
             }
             const t = days[dNow - 1];
             let streak = 0;
-            for (let i = dNow - 1; i >= 0 && days[i].left >= 0; i--) streak++;
+            for (let i = dNow - 1; i >= D0 && days[i].left >= 0; i--) streak++;
             let overDays = 0, streakBase = 0;
-            for (let i = 0; i < dNow; i++) if (days[i].over) overDays++;
-            for (let i = dNow - 1; i >= 0 && !days[i].over; i--) streakBase++;
-            return { overDays, streakBase, total, cats, D, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
+            for (let i = D0; i < dNow; i++) if (days[i].over) overDays++;
+            for (let i = dNow - 1; i >= D0 && !days[i].over; i--) streakBase++;
+            return { overDays, streakBase, total: R, cats, D, D0, Dr, dNow, base, days, t, streak, tomorrow: dNow < D ? t.left + base : null };
         }
 
         function renderDaily() {
             const s = dailyStats();
-            $("dailyHint").textContent = s ? `Total ${formatRp(s.total)} dari ${s.cats.length} kategori (${s.cats.join(", ")}) · jatah dasar ${formatRp(s.base)} per hari untuk ${s.D} hari.` : "Isi batas kategori lalu centang yang masuk batas harian.";
+            if (document.activeElement !== $("dailyStart")) $("dailyStart").value = state.daily.start || "";
+            if (document.activeElement !== $("dailyPrior")) $("dailyPrior").value = state.daily.prior ? state.daily.prior.toLocaleString("id-ID") : "";
+            $("dailyHint").textContent = s ? `${s.D0 > 0 ? "Sisa anggaran" : "Total"} ${formatRp(s.total)} dari ${s.cats.length} kategori (${s.cats.join(", ")}) · jatah dasar ${formatRp(s.base)} per hari untuk ${s.Dr} hari.` : "Isi batas kategori lalu centang yang masuk batas harian.";
             const card = $("dailyCard");
             if (!s) {
                 card.innerHTML = `<div class="flex items-center justify-between gap-3"><div><h3 class="font-bold text-slate-900 dark:text-white">Batas Harian</h3><p class="text-xs text-slate-400">Isi batas kategori di menu Anggaran dan centang yang masuk hitungan agar jatah harian terhitung.</p></div><button id="btnDailySetup" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-semibold shrink-0">Atur</button></div>`;
@@ -1389,11 +1409,11 @@
             const t = s.t, over = t.left < 0;
             const baseOver = t.spent > s.base + 0.5;
             const bpct = Math.min(t.spent / s.base * 100, 100);
-            const strip2 = s.days.map(d => `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.over ? "melewati jatah dasar" : "dalam jatah dasar")}" class="h-2.5 flex-1 rounded-sm ${d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.over ? "bg-amber-500" : "bg-emerald-500")} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`).join("");
+            const strip2 = s.days.map(d => `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.over ? "melewati jatah dasar" : "dalam jatah dasar")}" class="h-2.5 flex-1 rounded-sm ${(d.d > s.dNow || d.d <= s.D0) ? "bg-slate-200 dark:bg-slate-800" : (d.over ? "bg-amber-500" : "bg-emerald-500")} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`).join("");
             const pct = t.avail > 0 ? Math.min(t.spent / t.avail * 100, 100) : (t.spent > 0 ? 100 : 0);
             const sign = (v) => (v >= 0 ? "+" : "−") + formatRp(Math.abs(v));
             const strip = s.days.map(d => {
-                const cls = d.d > s.dNow ? "bg-slate-200 dark:bg-slate-800" : (d.left >= 0 ? "bg-emerald-500" : "bg-rose-500");
+                const cls = (d.d > s.dNow || d.d <= s.D0) ? "bg-slate-200 dark:bg-slate-800" : (d.left >= 0 ? "bg-emerald-500" : "bg-rose-500");
                 return `<span title="Tgl ${d.d}: ${d.d > s.dNow ? "belum" : (d.left >= 0 ? "dalam batas" : "melebihi")}" class="h-2.5 flex-1 rounded-sm ${cls} ${d.d === s.dNow ? "ring-2 ring-indigo-500" : ""}"></span>`;
             }).join("");
             card.innerHTML = `
@@ -1951,6 +1971,9 @@
             renderAll();
         };
 
+        $("dailyStart").addEventListener("change", (e) => { state.daily.start = /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) ? e.target.value : ""; syncToCloud(); renderAll(); });
+        $("dailyPrior").addEventListener("input", (e) => { const v = cleanNumber(e.target.value); e.target.value = v ? v.toLocaleString("id-ID") : ""; });
+        $("dailyPrior").addEventListener("change", (e) => { state.daily.prior = cleanNumber(e.target.value) || 0; syncToCloud(); renderAll(); });
         $("payMode").addEventListener("change", (e) => { state.pay.mode = e.target.value; syncToCloud(); renderAll(); });
         $("payDay").addEventListener("change", (e) => { state.pay.day = Math.min(Math.max(parseInt(e.target.value, 10) || 25, 1), 31); syncToCloud(); renderAll(); });
 
